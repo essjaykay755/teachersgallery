@@ -151,7 +151,7 @@ export default function TeachersManagement() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Input
-              placeholder="Search teachers..."
+              placeholder="Search by name, email, or subject..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
