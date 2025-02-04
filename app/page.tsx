@@ -14,6 +14,109 @@ import TeacherCard from "@/components/teacher-card"
 import { ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, X } from "lucide-react"
 import { AnimatedContainer, slideRight } from "@/components/ui/animations"
 
+const dummyTeachers = [
+  {
+    id: "priya-sharma",
+    name: "Priya Sharma",
+    subject: "Mathematics",
+    location: "Mumbai, Maharashtra",
+    rating: 4.8,
+    reviewsCount: 150,
+    fee: "₹800/hr",
+    avatarIndex: 1,
+    isVerified: true,
+    tags: ["Online", "10+ years", "High School", "IIT-JEE"],
+    date: "20 May, 2023",
+    color: "bg-blue-50",
+    featured: true
+  },
+  {
+    id: "rajesh-kumar",
+    name: "Rajesh Kumar",
+    subject: "Physics",
+    location: "Delhi, NCR",
+    rating: 4.8,
+    reviewsCount: 120,
+    fee: "₹600/hr",
+    avatarIndex: 2,
+    isVerified: true,
+    tags: ["Offline", "8 years", "CBSE", "NEET"],
+    date: "4 Feb, 2023",
+    color: "bg-green-50",
+    featured: true
+  },
+  {
+    id: "anjali-desai",
+    name: "Anjali Desai",
+    subject: "English Literature",
+    location: "Bangalore, Karnataka",
+    rating: 4.8,
+    reviewsCount: 90,
+    fee: "₹500/hr",
+    avatarIndex: 3,
+    isVerified: true,
+    tags: ["Hybrid", "5 years", "ICSE", "Primary"],
+    date: "29 Jan, 2023",
+    color: "bg-purple-50"
+  },
+  {
+    id: "debanjan-chakraborty",
+    name: "Debanjan Chakraborty",
+    subject: "Chemistry",
+    location: "Salt Lake, Kolkata",
+    rating: 4.8,
+    reviewsCount: 110,
+    fee: "₹650/hr",
+    avatarIndex: 4,
+    isVerified: true,
+    tags: ["Offline", "12 years", "WBCHSE", "NEET"],
+    date: "15 Mar, 2023",
+    color: "bg-orange-50"
+  },
+  {
+    id: "srabanti-mukherjee",
+    name: "Srabanti Mukherjee",
+    subject: "Bengali Literature",
+    location: "Howrah, West Bengal",
+    rating: 4.8,
+    reviewsCount: 80,
+    fee: "₹450/hr",
+    avatarIndex: 5,
+    isVerified: true,
+    tags: ["Hybrid", "7 years", "WBBSE", "HS"],
+    date: "8 Apr, 2023",
+    color: "bg-pink-50"
+  },
+  {
+    id: "soumitra-banerjee",
+    name: "Soumitra Banerjee",
+    subject: "Mathematics",
+    location: "Barasat, West Bengal",
+    rating: 4.8,
+    reviewsCount: 130,
+    fee: "₹550/hr",
+    avatarIndex: 6,
+    isVerified: true,
+    tags: ["Online", "15 years", "WBCHSE", "JEE"],
+    date: "12 Mar, 2023",
+    color: "bg-indigo-50"
+  },
+  {
+    id: "tanushree-das",
+    name: "Tanushree Das",
+    subject: "Physics",
+    location: "Dum Dum, Kolkata",
+    rating: 4.8,
+    reviewsCount: 95,
+    fee: "₹600/hr",
+    avatarIndex: 7,
+    isVerified: true,
+    tags: ["Hybrid", "9 years", "WBCHSE", "NEET"],
+    date: "25 Feb, 2023",
+    color: "bg-rose-50"
+  }
+]
+
 export default function Home() {
   const [feeRange, setFeeRange] = useState([500, 5000])
   const [currentPage, setCurrentPage] = useState(1)
@@ -225,87 +328,12 @@ export default function Home() {
 
             {/* Teachers Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <TeacherCard
-                id="priya-sharma"
-                name="Priya Sharma"
-                subject="Mathematics"
-                location="Mumbai, Maharashtra"
-                fee="₹800/hr"
-                tags={["Online", "10+ years", "High School", "IIT-JEE"]}
-                date="20 May, 2023"
-                color="bg-blue-50"
-                featured={true}
-                avatarIndex={1}
-                rating={4.8}
-              />
-              <TeacherCard
-                id="rajesh-kumar"
-                name="Rajesh Kumar"
-                subject="Physics"
-                location="Delhi, NCR"
-                fee="₹600/hr"
-                tags={["Offline", "8 years", "CBSE", "NEET"]}
-                date="4 Feb, 2023"
-                color="bg-green-50"
-                featured={true}
-                avatarIndex={2}
-                rating={4.8}
-              />
-              <TeacherCard
-                name="Anjali Desai"
-                subject="English Literature"
-                location="Bangalore, Karnataka"
-                fee="₹500/hr"
-                tags={["Hybrid", "5 years", "ICSE", "Primary"]}
-                date="29 Jan, 2023"
-                color="bg-purple-50"
-                avatarIndex={3}
-                rating={4.8}
-              />
-              <TeacherCard
-                name="Debanjan Chakraborty"
-                subject="Chemistry"
-                location="Salt Lake, Kolkata"
-                fee="₹650/hr"
-                tags={["Offline", "12 years", "WBCHSE", "NEET"]}
-                date="15 Mar, 2023"
-                color="bg-orange-50"
-                avatarIndex={4}
-                rating={4.8}
-              />
-              <TeacherCard
-                name="Srabanti Mukherjee"
-                subject="Bengali Literature"
-                location="Howrah, West Bengal"
-                fee="₹450/hr"
-                tags={["Hybrid", "7 years", "WBBSE", "HS"]}
-                date="8 Apr, 2023"
-                color="bg-pink-50"
-                avatarIndex={5}
-                rating={4.8}
-              />
-              <TeacherCard
-                name="Soumitra Banerjee"
-                subject="Mathematics"
-                location="Barasat, West Bengal"
-                fee="₹550/hr"
-                tags={["Online", "15 years", "WBCHSE", "JEE"]}
-                date="12 Mar, 2023"
-                color="bg-indigo-50"
-                avatarIndex={6}
-                rating={4.8}
-              />
-              <TeacherCard
-                name="Tanushree Das"
-                subject="Physics"
-                location="Dum Dum, Kolkata"
-                fee="₹600/hr"
-                tags={["Hybrid", "9 years", "WBCHSE", "NEET"]}
-                date="25 Feb, 2023"
-                color="bg-rose-50"
-                avatarIndex={7}
-                rating={4.8}
-              />
+              {dummyTeachers.map((teacher) => (
+                <TeacherCard
+                  key={teacher.id}
+                  teacher={teacher}
+                />
+              ))}
             </div>
 
             {/* Pagination */}
