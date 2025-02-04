@@ -206,7 +206,7 @@ export default function TeachersManagement() {
                   <div className="flex items-center gap-2">
                     {teacher.name}
                     {teacher.featured && (
-                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <Crown className="h-4 w-4 text-blue-500" />
                     )}
                     {teacher.verified && (
                       <BadgeCheck className="h-4 w-4 text-blue-500" />
@@ -323,7 +323,7 @@ export default function TeachersManagement() {
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{selectedTeacher.name}</p>
                     {selectedTeacher.featured && (
-                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <Crown className="h-4 w-4 text-blue-500" />
                     )}
                     {selectedTeacher.verified && (
                       <BadgeCheck className="h-4 w-4 text-blue-500" />

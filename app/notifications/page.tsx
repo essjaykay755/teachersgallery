@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Navbar from "@/components/navbar"
 import { MessageSquare, Calendar, Bell, CheckCircle2 } from "lucide-react"
 
 // Mock notifications data - In a real app, this would come from an API
@@ -52,11 +51,18 @@ const mockNotifications = [
 ]
 
 export default function NotificationsPage() {
+  const [isClient, setIsClient] = useState(false)
   const [filter, setFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const getFilteredNotifications = () => {
     let filtered = [...mockNotifications]
+
+    if (!isClient) return filtered
 
     // Apply filter
     if (filter !== "all") {
@@ -66,7 +72,7 @@ export default function NotificationsPage() {
     // Apply sorting
     filtered.sort((a, b) => {
       if (sortBy === "newest") {
-        return -1 // In real app, compare actual timestamps
+        return -1
       } else {
         return 1
       }
@@ -76,14 +82,12 @@ export default function NotificationsPage() {
   }
 
   const markAllAsRead = () => {
-    // In real app, make API call to mark all as read
+    if (!isClient) return
     console.log("Marking all as read...")
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Card>

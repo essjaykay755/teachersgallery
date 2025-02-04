@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, MapPin, Star, Clock, Users, Award, CheckCircle, Phone, MessageSquare, Heart, Briefcase, GraduationCap, School } from "lucide-react"
+import { ArrowLeft, MapPin, Star, Clock, Users, Award, CheckCircle, Phone, MessageSquare, Heart, Briefcase, GraduationCap, School, AlertTriangle } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import Navbar from "@/components/navbar"
 import { Textarea } from "@/components/ui/textarea"
 
 // Update mock teacher data
@@ -94,13 +93,19 @@ My teaching methodology focuses on building strong fundamentals and problem-solv
 }
 
 export default function TeacherProfile() {
+  const [isClient, setIsClient] = useState(false)
   const [activeTab, setActiveTab] = useState("about")
   const [isFavorite, setIsFavorite] = useState(false)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState("")
   const router = useRouter()
 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const calculateTotalExperience = () => {
+    if (!isClient) return "10+ years" // Default value for SSR
     const currentYear = new Date().getFullYear()
     const startYear = Math.min(...teacher.experience.map(exp => {
       const startYear = exp.period.split(" - ")[0]
@@ -110,14 +115,19 @@ export default function TeacherProfile() {
   }
 
   const handleRequestContact = (type: 'phone' | 'whatsapp') => {
-    // Add logic to request contact
+    if (!isClient) return
     console.log(`Requesting ${type} number...`)
   }
 
   const handleSubmitReview = () => {
-    // Add logic to submit review
+    if (!isClient) return
     console.log({ rating: reviewRating, comment: reviewComment })
     setReviewComment("")
+  }
+
+  const handleReport = () => {
+    if (!isClient) return
+    console.log('Reporting teacher...')
   }
 
   const renderStars = (rating: number, interactive: boolean = false) => {
@@ -143,9 +153,7 @@ export default function TeacherProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      {/* Back Button and Main Content */}
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Button 
           variant="ghost" 
@@ -194,8 +202,8 @@ export default function TeacherProfile() {
                           </div>
                         )}
                         {teacher.isFeatured && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-medium">
-                            <Star className="h-3.5 w-3.5 fill-yellow-400 stroke-yellow-400" />
+                          <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                            <Star className="h-3.5 w-3.5 fill-blue-400 stroke-blue-400" />
                             <span>Featured</span>
                           </div>
                         )}
@@ -457,6 +465,16 @@ export default function TeacherProfile() {
               <Button className="w-full">
                 Send Message
               </Button>
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="ghost" 
+                  className="w-full flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleReport}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  Report User
+                </Button>
+              </div>
             </Card>
           </div>
         </div>

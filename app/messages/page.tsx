@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, MoreVertical, Send, Image as ImageIcon, Phone, MessageSquare, User } from "lucide-react"
+import { Search, MoreVertical, Send, Image as ImageIcon, Phone, MessageSquare, User, AlertTriangle } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 import Link from "next/link"
-import Navbar from "@/components/navbar"
+import { AnimatedContainer, slideRight } from "@/components/ui/animations"
 
 // Mock data for messages
 const conversations = [
@@ -41,7 +41,7 @@ const conversations = [
   // Add more conversations as needed
 ]
 
-export default function MessagesPage() {
+export default function Messages() {
   const [selectedConversation, setSelectedConversation] = useState(conversations[0])
   const [messageInput, setMessageInput] = useState("")
   const [showActions, setShowActions] = useState(false)
@@ -60,8 +60,6 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -176,6 +174,17 @@ export default function MessagesPage() {
                         <User className="h-4 w-4" />
                         Assign as Teacher
                       </button>
+                      <button
+                        onClick={() => {
+                          // Add report logic here
+                          console.log('Reporting user...')
+                          setShowActions(false)
+                        }}
+                        className="w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2 border-t border-gray-100 mt-2"
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                        Report User
+                      </button>
                     </div>
                   )}
                 </div>
@@ -219,6 +228,37 @@ export default function MessagesPage() {
                     <span className="text-xs text-gray-500 mt-1">10:32 AM</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRequestContact('phone')}
+                  className="text-xs"
+                >
+                  <Phone className="h-3 w-3 mr-1" />
+                  Request Phone
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRequestContact('whatsapp')}
+                  className="text-xs"
+                >
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Request WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAssignTeacher}
+                  className="text-xs"
+                >
+                  <User className="h-3 w-3 mr-1" />
+                  Assign as Teacher
+                </Button>
               </div>
 
               {/* Message Input */}

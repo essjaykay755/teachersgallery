@@ -2,10 +2,9 @@
 
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import { ChevronDown, Search, HelpCircle, Mail, Phone, MessageSquare, UserPlus } from "lucide-react"
-import Navbar from "@/components/navbar"
-import { Input } from "@/components/ui/input"
+import { ChevronDown, Search, HelpCircle, Mail, Phone, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Metadata } from 'next'
 
 // FAQ categories
 const categories = [
@@ -71,7 +71,7 @@ const faqs = {
   ]
 }
 
-export default function FAQPage() {
+export default function FAQ() {
   const [activeCategory, setActiveCategory] = useState('general')
   const [searchQuery, setSearchQuery] = useState('')
   const [openQuestions, setOpenQuestions] = useState<string[]>([])
@@ -92,8 +92,6 @@ export default function FAQPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
@@ -241,41 +239,6 @@ export default function FAQPage() {
                     placeholder="Your message..."
                   ></textarea>
                   <Button className="w-full">Start Chat</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Assign Teacher Button */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  className="h-14 w-14 rounded-full shadow-lg bg-purple-600 hover:bg-purple-700 text-white p-0"
-                  title="Assign Teacher"
-                >
-                  <UserPlus className="h-6 w-6" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Request Teacher Assignment</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <Input placeholder="Your Name" />
-                  <Input placeholder="Email" type="email" />
-                  <Input placeholder="Phone Number" type="tel" />
-                  <select className="w-full p-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Subject</option>
-                    <option value="mathematics">Mathematics</option>
-                    <option value="physics">Physics</option>
-                    <option value="chemistry">Chemistry</option>
-                    <option value="biology">Biology</option>
-                    <option value="english">English</option>
-                  </select>
-                  <textarea 
-                    className="w-full min-h-[100px] p-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Additional requirements..."
-                  ></textarea>
-                  <Button className="w-full">Submit Request</Button>
                 </div>
               </DialogContent>
             </Dialog>

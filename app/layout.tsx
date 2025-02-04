@@ -1,37 +1,44 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/footer";
+import PageWrapper from "@/components/layout/page-wrapper";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TeachersGallery - Find the Best Teachers Near You",
-  description: "Connect with experienced teachers for personalized learning. Find tutors for any subject, any level.",
+  title: "TeachersGallery",
+  description: "Find and connect with the best teachers in your area",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        sizes: "any",
+      },
+      {
+        url: "/icon.png",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/apple-icon.png",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <div className="flex flex-col min-h-screen">
-          <div className="flex-1">
-            {children}
-          </div>
-          <Footer />
-        </div>
+    <html lang="en">
+      <body className={inter.className}>
+        <PageWrapper>
+          {children}
+        </PageWrapper>
       </body>
     </html>
   );

@@ -8,16 +8,13 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Mail } from "lucide-react"
-import Navbar from "@/components/navbar"
 
-export default function LoginPage() {
+export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">

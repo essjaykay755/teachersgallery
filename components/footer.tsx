@@ -4,139 +4,98 @@ import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone } from "lucide-reac
 
 export default function Footer() {
   return (
-    <footer className="bg-[#111111] text-white/70">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company Info */}
+    <footer className="bg-white border-t">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <Image
-              src="/logo.png"
-              alt="TeachersGallery.com"
-              width={240}
-              height={48}
-              className="h-12 w-auto"
-            />
-            <p className="text-sm">
-              Connecting students with the best teachers across India. Learn from experienced educators in your preferred subjects.
+            <Link href="/" className="flex items-center space-x-2">
+              <Image
+                src="/logo.png"
+                alt="TeachersGallery Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
+              <span className="text-xl font-bold">TeachersGallery</span>
+            </Link>
+            <p className="text-gray-600 text-sm">
+              Connecting great teachers with students for better education.
             </p>
-            <div className="flex items-center gap-4">
-              <a href="https://facebook.com" className="hover:text-white transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="https://twitter.com" className="hover:text-white transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com" className="hover:text-white transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="https://linkedin.com" className="hover:text-white transition-colors">
-                <Linkedin className="h-5 w-5" />
-              </a>
-            </div>
           </div>
-
-          {/* Quick Links */}
+          
           <div>
-            <h3 className="font-semibold text-white mb-4">Quick Links</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+            <ul className="space-y-3">
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link href="/about" className="text-gray-600 hover:text-blue-600 text-sm">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-white transition-colors">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
+                <Link href="/contact" className="text-gray-600 hover:text-blue-600 text-sm">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link href="/careers" className="hover:text-white transition-colors">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="hover:text-white transition-colors">
-                  Blog
+                <Link href="/faq" className="text-gray-600 hover:text-blue-600 text-sm">
+                  FAQ
                 </Link>
               </li>
             </ul>
           </div>
-
-          {/* Legal */}
+          
           <div>
-            <h3 className="font-semibold text-white mb-4">Legal</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <ul className="space-y-3">
               <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
+                <Link href="/legal/privacy-policy" className="text-gray-600 hover:text-blue-600 text-sm">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
+                <Link href="/legal/terms-of-service" className="text-gray-600 hover:text-blue-600 text-sm">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/cookies" className="hover:text-white transition-colors">
+                <Link href="/legal/cookie-policy" className="text-gray-600 hover:text-blue-600 text-sm">
                   Cookie Policy
                 </Link>
               </li>
               <li>
-                <Link href="/refund" className="hover:text-white transition-colors">
+                <Link href="/legal/refund-policy" className="text-gray-600 hover:text-blue-600 text-sm">
                   Refund Policy
                 </Link>
               </li>
             </ul>
           </div>
-
-          {/* Contact Info */}
+          
           <div>
-            <h3 className="font-semibold text-white mb-4">Contact Us</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Connect</h3>
             <ul className="space-y-3">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <a href="mailto:support@teachersgallery.com" className="hover:text-white transition-colors">
-                  support@teachersgallery.com
+              <li>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 text-sm">
+                  Twitter
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <a href="tel:+919876543210" className="hover:text-white transition-colors">
-                  +91 98765 43210
+              <li>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 text-sm">
+                  LinkedIn
+                </a>
+              </li>
+              <li>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 text-sm">
+                  Facebook
                 </a>
               </li>
             </ul>
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-white mb-2">Office Hours</h4>
-              <p className="text-sm">Monday - Saturday</p>
-              <p className="text-sm">9:00 AM - 6:00 PM IST</p>
-            </div>
           </div>
         </div>
-
-        {/* Bottom Bar */}
-        <div className="border-t border-white/10 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm">
-              © {new Date().getFullYear()} TeachersGallery. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6 text-sm">
-              <Link href="/sitemap" className="hover:text-white transition-colors">
-                Sitemap
-              </Link>
-              <Link href="/accessibility" className="hover:text-white transition-colors">
-                Accessibility
-              </Link>
-              <Link href="/security" className="hover:text-white transition-colors">
-                Security
-              </Link>
-            </div>
-          </div>
+        
+        <div className="mt-8 pt-8 border-t">
+          <p className="text-center text-gray-500 text-sm">
+            © {new Date().getFullYear()} TeachersGallery. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

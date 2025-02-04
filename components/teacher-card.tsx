@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MapPin, Star, Calendar, BadgeCheck } from "lucide-react"
+import { MapPin, Star, Calendar, CheckCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { AnimatedContainer, fadeIn } from "@/components/ui/animations"
@@ -50,7 +50,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({
         className={`${color} rounded-2xl p-6 transition-all hover:shadow-lg cursor-pointer relative border border-gray-100/50`}
       >
         {featured && (
-          <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full animate-pulse">
+          <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
             Featured
           </span>
         )}
@@ -70,7 +70,9 @@ const TeacherCard: React.FC<TeacherCardProps> = ({
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900">{name}</h3>
               {verified && (
-                <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                <div className="flex items-center justify-center h-5 w-5 bg-green-50 text-green-600 rounded-full">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                </div>
               )}
             </div>
             <p className="text-sm text-gray-600">{subject}</p>

@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import TeacherCard from "@/components/teacher-card"
-import Navbar from "@/components/navbar"
 import { ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, X } from "lucide-react"
 import { AnimatedContainer, slideRight } from "@/components/ui/animations"
 
@@ -135,8 +134,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       {/* Hero Section */}
       <div className="bg-[#111111] py-8">
         <div className="container mx-auto px-4">

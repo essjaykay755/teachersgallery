@@ -10,17 +10,14 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Navbar from "@/components/navbar"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 
-export default function RegisterPage() {
+export default function Register() {
   const [userType, setUserType] = useState("student")
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
@@ -61,7 +58,12 @@ export default function RegisterPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" />
+                      <Input id="password" type="password" placeholder="Enter password" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Input id="confirmPassword" type="password" placeholder="Confirm your password" />
                     </div>
 
                     <div className="space-y-2">
@@ -106,7 +108,12 @@ export default function RegisterPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" />
+                      <Input id="password" type="password" placeholder="Enter password" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Input id="confirmPassword" type="password" placeholder="Confirm your password" />
                     </div>
 
                     <div className="space-y-2">
@@ -176,7 +183,12 @@ export default function RegisterPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" />
+                      <Input id="password" type="password" placeholder="Enter password" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Input id="confirmPassword" type="password" placeholder="Confirm your password" />
                     </div>
 
                     <div className="space-y-2">
@@ -422,23 +434,55 @@ export default function RegisterPage() {
                         <Switch defaultChecked />
                       </div>
 
-                      <div className="flex items-start gap-4 p-4 bg-yellow-50 rounded-lg">
-                        <div className="flex items-center h-6">
-                          <Checkbox id="featured" />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="font-medium">Featured Listing</Label>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            Optional
+                          </span>
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="featured" className="font-medium">Featured Listing</Label>
-                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                              Optional
-                            </span>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Get more visibility with a featured listing. Your profile will appear at the top of search results.
+                        </p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Monthly Plan */}
+                          <div className="relative border rounded-lg p-4 bg-blue-50 border-blue-200">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id="featured-monthly"
+                                  name="featured-plan"
+                                  className="h-4 w-4 text-blue-600 border-blue-300"
+                                />
+                                <Label htmlFor="featured-monthly" className="font-medium">30 Days Featured</Label>
+                              </div>
+                              <div className="pl-6">
+                                <div className="text-2xl font-bold text-blue-600">₹99</div>
+                                <p className="text-sm text-blue-700">Best value for long-term visibility</p>
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600">
-                            Get more visibility with a featured listing. Your profile will appear at the top of search results.
-                          </p>
-                          <p className="text-sm font-medium text-yellow-800">
-                            First 30 days free! Then ₹999/month
-                          </p>
+
+                          {/* Weekly Plan */}
+                          <div className="relative border rounded-lg p-4 bg-blue-50 border-blue-200">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id="featured-weekly"
+                                  name="featured-plan"
+                                  className="h-4 w-4 text-blue-600 border-blue-300"
+                                />
+                                <Label htmlFor="featured-weekly" className="font-medium">7 Days Featured</Label>
+                              </div>
+                              <div className="pl-6">
+                                <div className="text-2xl font-bold text-blue-600">₹49</div>
+                                <p className="text-sm text-blue-700">Perfect for a quick boost</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

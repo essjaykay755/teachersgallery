@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import Navbar from "@/components/navbar"
+import { Textarea } from "@/components/ui/textarea"
+import Image from "next/image"
+import { Camera, Mail, Phone, MapPin, Calendar, Clock } from "lucide-react"
 
 // Mock user data - In real app, this would come from your auth system
 const mockUser = {
@@ -21,9 +23,15 @@ const mockUser = {
   featuredUntil: "2024-05-01", // null if not featured
 }
 
-export default function AccountPage() {
+export default function Account() {
+  const [isClient, setIsClient] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
+  const [image, setImage] = useState<string | null>(null)
   const [isListingActive, setIsListingActive] = useState(mockUser.listingActive)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const getDaysRemaining = (dateString: string | null) => {
     if (!dateString) return 0
@@ -106,7 +114,7 @@ export default function AccountPage() {
             {mockUser.featuredUntil ? (
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                     Featured
                   </span>
                   <span className="text-sm text-gray-600">
@@ -214,8 +222,6 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Card>
