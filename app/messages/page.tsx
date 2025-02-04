@@ -264,16 +264,18 @@ export default function Messages() {
               {/* Message Input */}
               <div className="p-4 border-t border-gray-100">
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="rounded-full">
+                  <Button variant="ghost" size="icon" className="rounded-full flex-shrink-0">
                     <ImageIcon className="h-4 w-4" />
                   </Button>
-                  <Input
-                    placeholder="Type a message..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    className="bg-gray-50 border-0"
-                  />
-                  <Button size="icon" className="rounded-full">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Type a message..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      className="bg-gray-50 border-0 w-full"
+                    />
+                  </div>
+                  <Button size="icon" className="rounded-full flex-shrink-0">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
