@@ -1,22 +1,25 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone } from "lucide-react"
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear()
+  
   return (
     <footer className="bg-white border-t">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center">
               <Image
-                src="/logo.png"
+                src="/logo_dark.png"
                 alt="TeachersGallery Logo"
-                width={40}
-                height={40}
+                width={200}
+                height={80}
                 className="object-contain"
               />
-              <span className="text-xl font-bold">TeachersGallery</span>
             </Link>
             <p className="text-gray-600 text-sm">
               Connecting great teachers with students for better education.
@@ -94,7 +97,7 @@ export default function Footer() {
         
         <div className="mt-8 pt-8 border-t">
           <p className="text-center text-gray-500 text-sm">
-            © {new Date().getFullYear()} TeachersGallery. All rights reserved.
+            © {currentYear} TeachersGallery. All rights reserved.
           </p>
         </div>
       </div>

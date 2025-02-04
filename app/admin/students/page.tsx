@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useDebounce } from "@/hooks/useDebounce"
 
 // Student stats
 const stats = [
@@ -108,6 +109,7 @@ const students = [
 
 export default function StudentsManagement() {
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const [studentStatus, setStudentStatus] = useState("all")

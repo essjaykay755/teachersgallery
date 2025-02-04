@@ -46,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useDebounce } from "@/hooks/useDebounce"
 
 // Mock data for reviews
 const reviews = [
@@ -116,6 +117,7 @@ const stats = [
 
 export default function ReviewsManagement() {
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery)
   const [selectedReview, setSelectedReview] = useState<any>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const [reviewStatus, setReviewStatus] = useState("all")

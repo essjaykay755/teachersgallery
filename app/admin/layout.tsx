@@ -105,18 +105,18 @@ export default function AdminLayout({
       )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-48 flex flex-col items-center justify-center bg-blue-600 px-6 py-8">
-            <Link href="/admin" className="flex flex-col items-center gap-4">
-              <div className="w-40 h-40 flex items-center justify-center">
+          <div className="h-24 flex items-center justify-center bg-blue-600 px-6">
+            <Link href="/admin" className="flex flex-col items-center gap-2">
+              <div className="w-32 h-12 flex items-center justify-center">
                 <Image
                   src="/logo.png"
                   alt="TeachersGallery Logo"
-                  width={120}
-                  height={120}
+                  width={100}
+                  height={40}
                   className="object-contain brightness-0 invert"
                 />
               </div>
-              <span className="text-lg font-semibold text-white">Admin Panel</span>
+              <span className="text-sm font-medium text-white">Admin Panel</span>
             </Link>
           </div>
 

@@ -20,6 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { AnimatedContainer, fadeIn, slideDown, slideRight, slideLeft } from "@/components/ui/animations"
+import { useDebounce } from "@/hooks/useDebounce"
 
 // Mock locations data
 const locations = [
@@ -82,6 +83,7 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery)
   const [selectedLocation, setSelectedLocation] = useState({
     city: "Mumbai",
     state: "Maharashtra"
