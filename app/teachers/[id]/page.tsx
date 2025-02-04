@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, Star, Clock, Users, Award, CheckCircle, Phone, Messa
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
+import { StarRating } from "@/components/ui/star-rating"
 
 // Update mock teacher data
 const teacher = {
@@ -104,52 +105,30 @@ export default function TeacherProfile() {
     setIsClient(true)
   }, [])
 
-  const calculateTotalExperience = () => {
-    if (!isClient) return "10+ years" // Default value for SSR
-    const currentYear = new Date().getFullYear()
+  const totalExperience = useMemo(() => {
+    const currentYear = 2024 // Using a fixed year instead of dynamic calculation
     const startYear = Math.min(...teacher.experience.map(exp => {
       const startYear = exp.period.split(" - ")[0]
       return parseInt(startYear)
     }))
     return `${currentYear - startYear}+ years`
-  }
+  }, [teacher.experience])
 
-  const handleRequestContact = (type: 'phone' | 'whatsapp') => {
+  const handleRequestContact = useCallback((type: 'phone' | 'whatsapp') => {
     if (!isClient) return
     console.log(`Requesting ${type} number...`)
-  }
+  }, [isClient])
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = useCallback(() => {
     if (!isClient) return
     console.log({ rating: reviewRating, comment: reviewComment })
     setReviewComment("")
-  }
+  }, [isClient, reviewRating, reviewComment])
 
-  const handleReport = () => {
+  const handleReport = useCallback(() => {
     if (!isClient) return
     console.log('Reporting teacher...')
-  }
-
-  const renderStars = (rating: number, interactive: boolean = false) => {
-    return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            className={`${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform`}
-            onClick={() => interactive && setReviewRating(star)}
-            type={interactive ? "button" : undefined}
-          >
-            <Star
-              className={`h-5 w-5 ${
-                star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-              }`}
-            />
-          </button>
-        ))}
-      </div>
-    )
-  }
+  }, [isClient])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -221,13 +200,13 @@ export default function TeacherProfile() {
                   </div>
                   <div className="flex flex-wrap gap-4 mt-4">
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-400" />
+                      <StarRating rating={teacher.rating} />
                       <span className="font-medium">{teacher.rating}</span>
                       <span className="text-gray-500">({teacher.reviewsCount} reviews)</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Clock className="h-4 w-4" />
-                      <span>{calculateTotalExperience()}</span>
+                      <span>{totalExperience}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Users className="h-4 w-4" />
@@ -374,7 +353,7 @@ export default function TeacherProfile() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-3xl font-bold">{teacher.rating}</span>
-                          {renderStars(teacher.rating)}
+                          <StarRating rating={teacher.rating} size="lg" />
                         </div>
                         <p className="text-sm text-gray-500 mt-1">Based on {teacher.reviewsCount} reviews</p>
                       </div>
@@ -402,7 +381,7 @@ export default function TeacherProfile() {
                                 <h4 className="font-medium">{review.student}</h4>
                                 <span className="text-sm text-gray-500">{review.date}</span>
                               </div>
-                              {renderStars(review.rating)}
+                              <StarRating rating={review.rating} />
                               <p className="text-gray-600 mt-2">{review.comment}</p>
                             </div>
                           </div>
@@ -416,7 +395,12 @@ export default function TeacherProfile() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">Rating</label>
-                          {renderStars(reviewRating, true)}
+                          <StarRating 
+                            rating={reviewRating} 
+                            interactive 
+                            onRatingChange={setReviewRating} 
+                            size="lg"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-2">Your Review</label>

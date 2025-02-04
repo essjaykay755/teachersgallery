@@ -89,6 +89,9 @@ export default function AdminLayout({
           variant="outline"
           size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={sidebarOpen ? "Close sidebar menu" : "Open sidebar menu"}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-menu"
         >
           {sidebarOpen ? (
             <X className="h-4 w-4" />
@@ -99,14 +102,23 @@ export default function AdminLayout({
       </div>
 
       {/* Sidebar */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-72 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <div 
+        id="sidebar-menu"
+        role="navigation"
+        aria-label="Main navigation"
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-72 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="h-24 flex items-center justify-center bg-blue-600 px-6">
-            <Link href="/admin" className="flex flex-col items-center gap-2">
+            <Link 
+              href="/admin" 
+              className="flex flex-col items-center gap-2"
+              aria-label="Go to admin dashboard"
+            >
               <div className="w-32 h-12 flex items-center justify-center">
                 <Image
                   src="/logo.png"
@@ -121,13 +133,13 @@ export default function AdminLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-6">
-            <ul className="space-y-2">
+          <nav className="flex-1 overflow-y-auto p-6" aria-label="Sidebar navigation">
+            <ul className="space-y-2" role="list">
               {sidebarLinks.map((link) => {
                 const Icon = link.icon
                 const isActive = pathname === link.href
                 return (
-                  <li key={link.href}>
+                  <li key={link.href} role="listitem">
                     <Link
                       href={link.href}
                       className={cn(
@@ -136,8 +148,9 @@ export default function AdminLayout({
                           ? "bg-blue-50 text-blue-700" 
                           : "text-gray-600 hover:bg-gray-50"
                       )}
+                      aria-current={isActive ? "page" : undefined}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                       {link.title}
                     </Link>
                   </li>
@@ -149,11 +162,18 @@ export default function AdminLayout({
       </div>
 
       {/* Main Content */}
-      <div className={cn(
-        "min-h-screen transition-all duration-200 ease-in-out",
-        "lg:pl-72"
-      )}>
-        <main className="container mx-auto px-6 py-8">
+      <div 
+        className={cn(
+          "min-h-screen transition-all duration-200 ease-in-out",
+          "lg:pl-72"
+        )}
+      >
+        <main 
+          className="container mx-auto px-6 py-8"
+          id="main-content"
+          role="main"
+          aria-label="Main content"
+        >
           {children}
         </main>
       </div>

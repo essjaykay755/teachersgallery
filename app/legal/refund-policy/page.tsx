@@ -12,7 +12,7 @@ export default function RefundPolicy() {
         <div className="max-w-4xl mx-auto bg-white rounded-2xl p-8 shadow-sm">
           <h1 className="text-3xl font-bold mb-6">Refund Policy</h1>
           <div className="prose prose-gray max-w-none">
-            <p className="text-gray-600 mb-6">Last updated: {new Date().toLocaleDateString()}</p>
+            <p className="text-gray-600 mb-6">Last updated: {new Date().toISOString().split('T')[0]}</p>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">Overview</h2>

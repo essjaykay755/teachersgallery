@@ -1,120 +1,101 @@
 "use client"
 
 import * as React from "react"
-import { MapPin, Star, Calendar, CheckCircle } from "lucide-react"
+import { MapPin, CheckCircle } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { AnimatedContainer, fadeIn } from "@/components/ui/animations"
+import { StarRating } from "@/components/ui/star-rating"
 
 const getAvatarPath = (index: number) => `/avatars/avatar${(index % 8) + 1}.jpg`
 
 interface TeacherCardProps {
-  id?: string
-  name: string
-  subject: string
-  location: string
-  fee: string
-  tags: string[]
-  date: string
-  color: string
-  featured?: boolean
-  verified?: boolean
-  avatarIndex: number
-  rating?: number
+  teacher: {
+    id: string
+    name: string
+    subject: string
+    location: string
+    rating: number
+    reviewsCount: number
+    fee: string
+    avatarIndex: number
+    isVerified?: boolean
+    tags?: string[]
+  }
 }
 
-const TeacherCard: React.FC<TeacherCardProps> = ({ 
-  id = '1',
-  name, 
-  subject, 
-  location, 
-  fee, 
-  tags, 
-  date, 
-  color, 
-  featured,
-  verified = true, 
-  avatarIndex,
-  rating = 4.8
-}) => {
+const TeacherCard = React.memo(({ teacher }: TeacherCardProps) => {
   const router = useRouter()
 
-  const handleCardClick = () => {
-    router.push(`/teachers/${id}`)
-  }
+  // Memoize the handler since it only depends on teacher.id
+  const handleClick = React.useCallback(() => {
+    router.push(`/teachers/${teacher.id}`)
+  }, [router, teacher.id])
 
   return (
-    <AnimatedContainer animation={fadeIn} className="group">
+    <AnimatedContainer animation={fadeIn}>
       <div 
-        onClick={handleCardClick}
-        className={`${color} rounded-2xl p-6 transition-all hover:shadow-lg cursor-pointer relative border border-gray-100/50`}
+        className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        onClick={handleClick}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleClick()}
       >
-        {featured && (
-          <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-            Featured
-          </span>
-        )}
-
         <div className="flex items-start gap-4">
-          <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm transition-transform group-hover:scale-110">
+          <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-100">
             <Image
-              src={getAvatarPath(avatarIndex)}
-              alt={name}
+              src={getAvatarPath(teacher.avatarIndex)}
+              alt={teacher.name}
               fill
               className="object-cover"
-              priority
             />
           </div>
-
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{name}</h3>
-              {verified && (
-                <div className="flex items-center justify-center h-5 w-5 bg-green-50 text-green-600 rounded-full">
-                  <CheckCircle className="h-3.5 w-3.5" />
+          <div className="flex-grow">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium">{teacher.name}</h3>
+                  {teacher.isVerified && (
+                    <CheckCircle className="h-4 w-4 text-green-500" aria-label="Verified teacher" />
+                  )}
                 </div>
-              )}
-            </div>
-            <p className="text-sm text-gray-600">{subject}</p>
-            <div className="flex items-center gap-1.5 text-sm text-gray-500">
-              <MapPin className="h-3.5 w-3.5" />
-              <span>{location}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag, index) => (
-              <span
-                key={index}
-                className="px-2 py-0.5 bg-white/50 hover:bg-white/60 rounded-full text-xs text-gray-600 transition-colors"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-900">{fee}</p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  <span>{rating}</span>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  <span>{date}</span>
+                <p className="text-sm text-gray-600">{teacher.subject} Teacher</p>
+                <div className="flex items-center gap-1 text-gray-500 mt-1">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-sm">{teacher.location}</span>
                 </div>
               </div>
+              <div className="text-right">
+                <div className="font-medium text-blue-600">{teacher.fee}</div>
+                <div className="text-sm text-gray-500">per hour</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <StarRating rating={teacher.rating} size="sm" />
+                <span className="text-sm text-gray-500">({teacher.reviewsCount} reviews)</span>
+              </div>
+              {teacher.tags && teacher.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {teacher.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </AnimatedContainer>
   )
-}
+})
+
+TeacherCard.displayName = "TeacherCard"
 
 export default TeacherCard
 
