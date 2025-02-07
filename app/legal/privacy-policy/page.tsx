@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { useState, useEffect } from 'react'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | TeachersGallery',
@@ -6,13 +7,19 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPolicy() {
+  const [currentDate, setCurrentDate] = useState("")
+  
+  useEffect(() => {
+    setCurrentDate(new Date().toISOString().split('T')[0])
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl p-8 shadow-sm">
           <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
           <div className="prose prose-gray max-w-none">
-            <p className="text-gray-600 mb-6">Last updated: {new Date().toISOString().split('T')[0]}</p>
+            <p className="text-gray-600 mb-6">Last updated: {currentDate}</p>
             
             <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">Introduction</h2>
