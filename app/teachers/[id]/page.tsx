@@ -225,6 +225,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                       }
                       alt={teacher?.profiles?.full_name || mockTeacher.name}
                       fill
+                      sizes="(max-width: 640px) 96px, 128px"
                       className="object-cover"
                     />
                   </div>
@@ -469,6 +470,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                                 src={review.avatar}
                                 alt={review.student}
                                 fill
+                                sizes="40px"
                                 className="object-cover"
                               />
                             </div>

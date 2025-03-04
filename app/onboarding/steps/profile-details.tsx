@@ -177,6 +177,7 @@ export default function ProfileDetailsStep({
                     src={avatarPreview}
                     alt="Avatar preview"
                     fill
+                    sizes="64px"
                     className="object-cover"
                   />
                   <button

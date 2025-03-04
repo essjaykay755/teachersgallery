@@ -31,28 +31,18 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        teacher_profile:teacher_id(
-          id,
-          user_id,
-          subject,
-          location,
-          fee,
-          about,
-          tags,
-          is_verified,
-          rating,
-          reviews_count,
-          profiles:user_id(
-            id,
+        teacher_profile:teacher_id (
+          *,
+          profiles!user_id(
             full_name,
             avatar_url
           )
         ),
-        pricing_plan:plan_id(*)
+        pricing_plan:plan_id (*)
       `
       )
       .gte("end_date", now)
-      .order("start_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {

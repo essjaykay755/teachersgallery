@@ -24,7 +24,7 @@ export default function FindTeachersPage() {
         .select(
           `
           *,
-          profiles:user_id (
+          profiles!user_id (
             full_name,
             email,
             avatar_url
@@ -137,9 +137,7 @@ export default function FindTeachersPage() {
                   <div className="flex items-center">
                     <img
                       className="h-12 w-12 rounded-full"
-                      src={
-                        teacher.profiles?.avatar_url || "/default-avatar.png"
-                      }
+                      src={teacher.profiles?.avatar_url || "/avatar.jpg"}
                       alt=""
                     />
                     <div className="ml-4">

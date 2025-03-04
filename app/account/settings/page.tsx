@@ -11,7 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function AccountSettings() {
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const {
+    user,
+    profile,
+    isLoading: authLoading,
+    error: authError,
+    refreshProfile,
+  } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,14 +29,26 @@ export default function AccountSettings() {
   });
   const supabase = createClientComponentClient();
 
+  // Debug logging
+  console.log("AccountSettings: Current state:", {
+    hasUser: !!user,
+    hasProfile: !!profile,
+    authLoading,
+    authError,
+    isLoading,
+    error,
+  });
+
   useEffect(() => {
     if (!authLoading && (!user || !profile)) {
+      console.log("AccountSettings: No user/profile, redirecting to login");
       router.replace("/auth/login");
     }
   }, [user, profile, authLoading, router]);
 
   useEffect(() => {
     if (profile) {
+      console.log("AccountSettings: Setting form data from profile");
       setFormData({
         fullName: profile.full_name || "",
         email: profile.email || "",
@@ -45,7 +63,38 @@ export default function AccountSettings() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading...</p>
+          <p className="mt-2 text-sm text-gray-600">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth error if any
+  if (authError) {
+    // Check if it's a temporary connection message
+    const isConnecting = authError.includes("Connecting to");
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          {isConnecting ? (
+            <>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-sm text-indigo-600">{authError}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-base font-semibold text-red-600">
+                {authError}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                Retry
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -69,40 +118,53 @@ export default function AccountSettings() {
     setError(null);
 
     try {
+      console.log("AccountSettings: Submitting form");
+
       // Upload new avatar if selected
+      let avatarUrl = profile.avatar_url;
       if (avatarFile) {
+        console.log("AccountSettings: Uploading avatar");
         const result = await uploadAvatar(avatarFile, user.id);
         if ("error" in result) {
+          console.error("Avatar upload error:", result.error);
           throw new Error(result.error);
         }
 
-        // Update profile with new avatar
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ avatar_url: result.url })
-          .eq("id", user.id);
-
-        if (updateError) throw updateError;
+        avatarUrl = result.url;
+        console.log(
+          "AccountSettings: Avatar uploaded successfully:",
+          avatarUrl
+        );
       }
 
       // Update profile
+      console.log("AccountSettings: Updating profile");
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: formData.fullName,
           phone: formData.phone,
+          avatar_url: avatarUrl,
         })
         .eq("id", user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
 
-      // Trigger a revalidation of the auth context by refreshing the session
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw refreshError;
+      console.log("AccountSettings: Profile updated successfully");
 
-      router.refresh();
+      // Refresh the profile in the auth context
+      console.log("AccountSettings: Refreshing profile in auth context");
+      await refreshProfile();
+
+      console.log(
+        "AccountSettings: Profile refreshed, redirecting to dashboard"
+      );
       router.push("/dashboard");
     } catch (err) {
+      console.error("Form submission error:", err);
       setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setIsLoading(false);
@@ -136,11 +198,22 @@ export default function AccountSettings() {
                         alt="Preview"
                         className="h-full w-full object-cover"
                       />
+                    ) : profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile avatar"
+                        className="h-24 w-24 rounded-full object-cover"
+                        onError={(e) => {
+                          // Handle image loading errors
+                          console.error("Avatar image failed to load");
+                          e.currentTarget.src = "/avatar.jpg";
+                        }}
+                      />
                     ) : (
                       <img
-                        src={profile.avatar_url || "/default-avatar.png"}
-                        alt=""
-                        className="h-full w-full object-cover"
+                        src="/avatar.jpg"
+                        alt="Default avatar"
+                        className="h-24 w-24 rounded-full"
                       />
                     )}
                     <input

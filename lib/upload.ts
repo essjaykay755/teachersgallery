@@ -1,5 +1,4 @@
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { v4 as uuidv4 } from "uuid";
 
 /**
  * Uploads an avatar image to Supabase Storage
@@ -21,29 +20,30 @@ export async function uploadAvatar(
       return { error: "File size must be less than 2MB" };
     }
 
-    console.log("Supabase client created");
+    console.log("Upload: Starting avatar upload process");
 
     // Generate a unique file name
     const fileExt = file.name.split(".").pop();
     const fileName = `${
       userId || crypto.randomUUID()
     }-${Date.now()}.${fileExt}`;
-    console.log(`Generated file name: ${fileName}`);
+    console.log(`Upload: Generated file name: ${fileName}`);
 
     // Upload path
     const filePath = `${fileName}`;
-    console.log(`Attempting to upload file to avatars/${filePath}`);
+    console.log(`Upload: Target path: avatars/${filePath}`);
 
     // Create Supabase client
     const supabase = createClientComponentClient();
 
     // Check if the avatars bucket exists
     try {
+      console.log("Upload: Checking if avatars bucket exists");
       const { data: buckets, error: bucketsError } =
         await supabase.storage.listBuckets();
 
       if (bucketsError) {
-        console.error("Error listing buckets:", bucketsError);
+        console.error("Upload: Error listing buckets:", bucketsError);
         // Continue with upload attempt even if we can't check buckets
       } else {
         const avatarsBucketExists = buckets?.some(
@@ -51,7 +51,9 @@ export async function uploadAvatar(
         );
 
         if (!avatarsBucketExists) {
-          console.log("Avatars bucket does not exist, attempting to create it");
+          console.log(
+            "Upload: Avatars bucket does not exist, attempting to create it"
+          );
           try {
             const { error: createError } = await supabase.storage.createBucket(
               "avatars",
@@ -62,23 +64,38 @@ export async function uploadAvatar(
             );
 
             if (createError) {
-              console.error("Error creating avatars bucket:", createError);
+              console.error(
+                "Upload: Error creating avatars bucket:",
+                createError
+              );
+
+              // If we can't create the bucket, return a specific error
+              if (createError.message.includes("permission denied")) {
+                return {
+                  error:
+                    "You don't have permission to create storage buckets. Please contact an administrator.",
+                };
+              }
+
               // Continue with upload attempt even if bucket creation fails
             } else {
-              console.log("Avatars bucket created successfully");
+              console.log("Upload: Avatars bucket created successfully");
             }
           } catch (createErr) {
-            console.error("Exception creating bucket:", createErr);
+            console.error("Upload: Exception creating bucket:", createErr);
             // Continue with upload attempt even if bucket creation fails
           }
+        } else {
+          console.log("Upload: Avatars bucket exists");
         }
       }
     } catch (err) {
-      console.error("Exception checking buckets:", err);
+      console.error("Upload: Exception checking buckets:", err);
       // Continue with upload attempt even if bucket check fails
     }
 
     // Upload the file
+    console.log("Upload: Attempting to upload file");
     const { error: uploadError } = await supabase.storage
       .from("avatars")
       .upload(filePath, file, {
@@ -87,7 +104,7 @@ export async function uploadAvatar(
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      console.error("Upload: Upload error:", uploadError);
 
       // Check if it's an RLS policy error
       if (
@@ -96,27 +113,43 @@ export async function uploadAvatar(
         )
       ) {
         return {
-          error: "RLS policy error - user may not have permission to upload",
+          error:
+            "Permission denied: You don't have access to upload files. Please log out and log back in.",
+        };
+      }
+
+      // Check if it's a bucket not found error
+      if (uploadError.message.includes("bucket not found")) {
+        return {
+          error: "Storage bucket not found. Please contact an administrator.",
         };
       }
 
       return { error: uploadError.message };
     }
 
-    console.log("Upload successful, getting public URL");
+    console.log("Upload: File uploaded successfully, getting public URL");
 
     // Get the public URL
     const { data: publicUrlData } = supabase.storage
       .from("avatars")
       .getPublicUrl(filePath);
 
-    console.log("Generated public URL:", publicUrlData.publicUrl);
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      console.error("Upload: Failed to get public URL");
+      return { error: "Failed to get public URL for uploaded file" };
+    }
+
+    console.log("Upload: Generated public URL:", publicUrlData.publicUrl);
 
     return { url: publicUrlData.publicUrl };
   } catch (error) {
-    console.error("Exception in uploadAvatar:", error);
+    console.error("Upload: Exception in uploadAvatar:", error);
     return {
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unknown error occurred during upload",
     };
   }
 }

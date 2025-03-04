@@ -5,28 +5,54 @@ import type { NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
-  // Check auth condition
-  if (session?.user) {
-    // If the user is signed in and trying to access auth pages, redirect them to dashboard
-    if (req.nextUrl.pathname.startsWith("/auth/")) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-  } else {
-    // If the user is not signed in and trying to access protected pages, redirect them to login
-    if (
-      req.nextUrl.pathname.startsWith("/dashboard") ||
-      req.nextUrl.pathname.startsWith("/profile") ||
-      req.nextUrl.pathname.startsWith("/messages")
-    ) {
+  try {
+    // Refresh the session if it exists
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error("Middleware auth error:", error);
       return NextResponse.redirect(new URL("/auth/login", req.url));
     }
-  }
 
-  return res;
+    // Protected routes that require authentication
+    const protectedRoutes = [
+      "/dashboard",
+      "/account",
+      "/settings",
+      "/messages",
+      "/profile",
+    ];
+
+    // Auth routes that should redirect to dashboard if logged in
+    const authRoutes = ["/auth/login", "/auth/signup", "/login"];
+
+    const isProtectedRoute = protectedRoutes.some((route) =>
+      req.nextUrl.pathname.startsWith(route)
+    );
+    const isAuthRoute = authRoutes.some((route) =>
+      req.nextUrl.pathname.startsWith(route)
+    );
+
+    if (!session && isProtectedRoute) {
+      // Store the original URL to redirect back after login
+      const redirectUrl = new URL("/auth/login", req.url);
+      redirectUrl.searchParams.set("redirectTo", req.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (session && isAuthRoute) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    return res;
+  } catch (error) {
+    console.error("Middleware error:", error);
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
 }
 
 // Specify which routes to run the middleware on

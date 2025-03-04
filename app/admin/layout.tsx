@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   LayoutGrid,
   Users,
@@ -14,72 +14,72 @@ import {
   Menu,
   X,
   Crown,
-  UserPlus
-} from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import Image from "next/image"
+  UserPlus,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 const sidebarLinks = [
   {
     title: "Dashboard",
     href: "/admin",
-    icon: LayoutGrid
+    icon: LayoutGrid,
   },
   {
     title: "Add Users",
     href: "/admin/users",
-    icon: UserPlus
+    icon: UserPlus,
   },
   {
     title: "Teachers",
     href: "/admin/teachers",
-    icon: GraduationCap
+    icon: GraduationCap,
   },
   {
     title: "Students",
     href: "/admin/students",
-    icon: Users
+    icon: Users,
   },
   {
     title: "Parents",
     href: "/admin/parents",
-    icon: Users
+    icon: Users,
   },
   {
     title: "Messages",
     href: "/admin/messages",
-    icon: MessageSquare
+    icon: MessageSquare,
   },
   {
     title: "Reviews",
     href: "/admin/reviews",
-    icon: Star
+    icon: Star,
   },
   {
     title: "Featured",
     href: "/admin/featured",
-    icon: Crown
+    icon: Crown,
   },
   {
     title: "Notifications",
     href: "/admin/notifications",
-    icon: Bell
+    icon: Bell,
   },
   {
     title: "Settings",
     href: "/admin/settings",
-    icon: Settings
-  }
-]
+    icon: Settings,
+  },
+];
 
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const pathname = usePathname()
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,7 +102,7 @@ export default function AdminLayout({
       </div>
 
       {/* Sidebar */}
-      <div 
+      <div
         id="sidebar-menu"
         role="navigation"
         aria-label="Main navigation"
@@ -114,38 +114,43 @@ export default function AdminLayout({
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="h-24 flex items-center justify-center bg-blue-600 px-6">
-            <Link 
-              href="/admin" 
+            <Link
+              href="/admin"
               className="flex flex-col items-center gap-2"
               aria-label="Go to admin dashboard"
             >
               <div className="w-32 h-12 flex items-center justify-center">
                 <Image
                   src="/logo.png"
-                  alt="TeachersGallery Logo"
-                  width={100}
+                  alt="TeachersGallery"
+                  width={180}
                   height={40}
-                  className="object-contain brightness-0 invert"
+                  className="h-8 w-auto"
                 />
               </div>
-              <span className="text-sm font-medium text-white">Admin Panel</span>
+              <span className="text-sm font-medium text-white">
+                Admin Panel
+              </span>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-6" aria-label="Sidebar navigation">
+          <nav
+            className="flex-1 overflow-y-auto p-6"
+            aria-label="Sidebar navigation"
+          >
             <ul className="space-y-2" role="list">
               {sidebarLinks.map((link) => {
-                const Icon = link.icon
-                const isActive = pathname === link.href
+                const Icon = link.icon;
+                const isActive = pathname === link.href;
                 return (
                   <li key={link.href} role="listitem">
                     <Link
                       href={link.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
-                        isActive 
-                          ? "bg-blue-50 text-blue-700" 
+                        isActive
+                          ? "bg-blue-50 text-blue-700"
                           : "text-gray-600 hover:bg-gray-50"
                       )}
                       aria-current={isActive ? "page" : undefined}
@@ -154,7 +159,7 @@ export default function AdminLayout({
                       {link.title}
                     </Link>
                   </li>
-                )
+                );
               })}
             </ul>
           </nav>
@@ -162,13 +167,13 @@ export default function AdminLayout({
       </div>
 
       {/* Main Content */}
-      <div 
+      <div
         className={cn(
           "min-h-screen transition-all duration-200 ease-in-out",
           "lg:pl-72"
         )}
       >
-        <main 
+        <main
           className="container mx-auto px-6 py-8"
           id="main-content"
           role="main"
@@ -178,5 +183,5 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
-  )
-} 
+  );
+}

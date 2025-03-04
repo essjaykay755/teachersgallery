@@ -224,9 +224,9 @@ export default function TeacherProfileSettings() {
               </label>
               <div className="mt-1 flex items-center space-x-4">
                 <img
-                  src={profile?.avatar_url || "/default-avatar.png"}
-                  alt=""
-                  className="h-12 w-12 rounded-full"
+                  src={profile?.avatar_url || "/avatar.jpg"}
+                  alt="Profile avatar"
+                  className="h-24 w-24 rounded-full"
                 />
                 <input
                   type="file"

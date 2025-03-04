@@ -13,7 +13,7 @@ import {
   MessageSquare,
   HelpCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,8 +100,20 @@ const mockNotifications = [
   },
 ];
 
+// Add this helper function to check if a profile is temporary
+const isTemporaryProfile = (
+  user: { email?: string } | null,
+  profile: { phone?: string; full_name?: string } | null
+): boolean => {
+  if (!profile) return false;
+  return (
+    !profile.phone &&
+    profile.full_name === (user?.email?.split("@")[0] || "New User")
+  );
+};
+
 export default function Navbar() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -116,6 +128,72 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Create refs for dropdown containers
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const searchModalRef = useRef<HTMLDivElement>(null);
+
+  // Check if the current profile is temporary
+  const profileIsTemporary = isTemporaryProfile(user, profile);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      // Close user menu if click is outside
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+
+      // Close notifications if click is outside
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+
+      // For mobile menu and search modal, we need to check if the click is outside
+      // but we don't want to close them when clicking on their toggle buttons
+      const target = event.target as HTMLElement;
+
+      // Check if the click is on the mobile menu toggle button
+      const isMobileMenuToggleClick = target.closest(
+        "[data-mobile-menu-toggle]"
+      );
+      if (
+        !isMobileMenuToggleClick &&
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(target)
+      ) {
+        setShowMobileMenu(false);
+      }
+
+      // Check if the click is on the search modal toggle button
+      const isSearchModalToggleClick = target.closest(
+        "[data-search-modal-toggle]"
+      );
+      if (
+        !isSearchModalToggleClick &&
+        searchModalRef.current &&
+        !searchModalRef.current.contains(target)
+      ) {
+        setShowSearchModal(false);
+      }
+    }
+
+    // Add event listener
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Clean up
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleLocationSelect = (city: string, state: string) => {
     setSelectedLocation({ city, state });
     setShowLocationPicker(false);
@@ -123,8 +201,37 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    router.push("/auth/login");
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error("Error signing out:", error);
+        return;
+      }
+      // Clear local state
+      setShowUserMenu(false);
+      // Force a hard refresh to clear all client state
+      window.location.href = "/auth/login";
+    } catch (err) {
+      console.error("Error during logout:", err);
+    }
+  };
+
+  const handleNavigation = (path: string) => {
+    setShowUserMenu(false); // Close menu first
+    router.push(path);
+  };
+
+  // Add a function to handle profile refresh
+  const handleRefreshProfile = async () => {
+    try {
+      await refreshProfile();
+      // If we're on the dashboard, refresh the page to show updated data
+      if (pathname === "/dashboard") {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+    }
   };
 
   return (
@@ -137,18 +244,18 @@ export default function Navbar() {
               <button
                 className="lg:hidden text-white/70 hover:text-white"
                 onClick={() => setShowMobileMenu(true)}
+                data-mobile-menu-toggle
               >
                 <Menu className="h-6 w-6" />
               </button>
 
-              <Link href="/" className="h-14">
+              <Link href="/" className="flex items-center h-14">
                 <Image
                   src="/logo.png"
-                  alt="TeachersGallery.com"
+                  alt="TeachersGallery"
                   width={280}
                   height={56}
-                  className="h-full w-auto"
-                  priority
+                  className="h-14 w-auto"
                 />
               </Link>
               <nav className="hidden lg:flex items-center gap-8">
@@ -206,6 +313,7 @@ export default function Navbar() {
               <button
                 className="lg:hidden text-white/70 hover:text-white"
                 onClick={() => setShowSearchModal(true)}
+                data-search-modal-toggle
               >
                 <Search className="h-5 w-5" />
               </button>
@@ -261,7 +369,7 @@ export default function Navbar() {
                 </PopoverContent>
               </Popover>
 
-              <div className="relative">
+              <div className="relative" ref={notificationsRef}>
                 <button
                   className="p-2 text-white/70 hover:text-white"
                   onClick={() => setShowNotifications(!showNotifications)}
@@ -317,16 +425,21 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   className="h-8 w-8 overflow-hidden rounded-full"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
                   {user ? (
                     <img
-                      src={profile?.avatar_url || "/default-avatar.png"}
+                      src={profile?.avatar_url || "/avatar.jpg"}
                       alt="User avatar"
                       className="h-full w-full object-cover"
+                      onError={(e) => {
+                        // Handle image loading errors
+                        console.error("Avatar image failed to load");
+                        e.currentTarget.src = "/avatar.jpg";
+                      }}
                     />
                   ) : (
                     <Link
@@ -343,33 +456,79 @@ export default function Navbar() {
                     <div className="px-4 py-2 text-sm text-gray-700 border-b">
                       <p className="font-medium">{profile?.full_name}</p>
                       <p className="text-gray-500">{user.email}</p>
+                      {profileIsTemporary && (
+                        <p className="text-amber-600 text-xs mt-1">
+                          Profile incomplete
+                        </p>
+                      )}
                     </div>
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <User className="h-4 w-4" />
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/account/settings"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <User className="h-4 w-4" />
-                      Account Settings
-                    </Link>
-                    {profile?.user_type === "teacher" && (
-                      <Link
-                        href="/settings/teacher-profile"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <User className="h-4 w-4" />
-                        Teacher Profile
-                      </Link>
+
+                    {profileIsTemporary ? (
+                      <>
+                        <button
+                          onClick={() => handleNavigation("/account/settings")}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <User className="h-4 w-4" />
+                          Complete Profile
+                        </button>
+                        <button
+                          onClick={handleRefreshProfile}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-gray-100 w-full text-left"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                          >
+                            <path d="M21 2v6h-6"></path>
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                            <path d="M3 22v-6h6"></path>
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                          </svg>
+                          Refresh Profile
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleNavigation("/dashboard")}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <User className="h-4 w-4" />
+                          Dashboard
+                        </button>
+                        <button
+                          onClick={() => handleNavigation("/account/settings")}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <User className="h-4 w-4" />
+                          Account Settings
+                        </button>
+                        {profile?.user_type === "teacher" && (
+                          <button
+                            onClick={() =>
+                              handleNavigation("/settings/teacher-profile")
+                            }
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                          >
+                            <User className="h-4 w-4" />
+                            Teacher Profile
+                          </button>
+                        )}
+                      </>
                     )}
+
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                     >
                       <LogOut className="h-4 w-4" />
                       Logout
@@ -387,6 +546,7 @@ export default function Navbar() {
             <AnimatedContainer
               animation={slideLeft}
               className="fixed inset-y-0 left-0 w-full max-w-[280px] bg-[#111111] shadow-lg"
+              ref={mobileMenuRef}
             >
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
@@ -450,7 +610,11 @@ export default function Navbar() {
       {/* Search Modal for Mobile/Tablet */}
       {showSearchModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-20 px-4 lg:hidden">
-          <AnimatedContainer animation={slideDown} className="w-full max-w-lg">
+          <AnimatedContainer
+            animation={slideDown}
+            className="w-full max-w-lg"
+            ref={searchModalRef}
+          >
             <div className="relative">
               <Input
                 placeholder="Search teachers by name, subject, or location..."

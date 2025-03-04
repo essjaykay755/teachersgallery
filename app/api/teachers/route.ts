@@ -51,7 +51,7 @@ export async function GET(request: Request) {
       .select(
         `
         *,
-        profiles:user_id (
+        profiles!user_id (
           full_name,
           email,
           avatar_url

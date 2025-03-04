@@ -91,8 +91,8 @@ export default function Navbar() {
                 <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                   <img
                     className="h-8 w-8 rounded-full"
-                    src={profile?.avatar_url || "/default-avatar.png"}
-                    alt=""
+                    src={profile?.avatar_url || "/avatar.jpg"}
+                    alt="User avatar"
                   />
                 </Menu.Button>
                 <Transition
