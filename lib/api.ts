@@ -15,13 +15,16 @@ export async function fetchTeacherExperiences(
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to fetch teacher experiences");
+      // Log the error but don't throw, just return empty array
+      console.log("Error fetching teacher experiences:", error.error || response.statusText);
+      return [];
     }
 
     const { data } = await response.json();
-    return data;
+    return data || [];
   } catch (error) {
-    console.error("Error fetching teacher experiences:", error);
+    // Log the error but don't throw, just return empty array
+    console.log("Exception fetching teacher experiences:", error);
     return [];
   }
 }
@@ -41,13 +44,16 @@ export async function fetchTeacherEducations(
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to fetch teacher educations");
+      // Log the error but don't throw, just return empty array
+      console.log("Error fetching teacher educations:", error.error || response.statusText);
+      return [];
     }
 
     const { data } = await response.json();
-    return data;
+    return data || [];
   } catch (error) {
-    console.error("Error fetching teacher educations:", error);
+    // Log the error but don't throw, just return empty array
+    console.log("Exception fetching teacher educations:", error);
     return [];
   }
 }

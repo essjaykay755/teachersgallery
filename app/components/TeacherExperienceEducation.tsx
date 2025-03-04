@@ -24,16 +24,34 @@ export default function TeacherExperienceEducation({
         setIsLoading(true);
         setError(null);
 
-        const [experiencesData, educationsData] = await Promise.all([
+        // Use Promise.allSettled instead of Promise.all to handle partial failures
+        const results = await Promise.allSettled([
           fetchTeacherExperiences(teacherId),
           fetchTeacherEducations(teacherId),
         ]);
 
-        setExperiences(experiencesData);
-        setEducations(educationsData);
+        // Check results and handle accordingly
+        if (results[0].status === 'fulfilled') {
+          setExperiences(results[0].value);
+        } else {
+          console.log("Failed to load experiences:", results[0].reason);
+        }
+
+        if (results[1].status === 'fulfilled') {
+          setEducations(results[1].value);
+        } else {
+          console.log("Failed to load educations:", results[1].reason);
+        }
+
+        // If both failed, set an error
+        if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+          setError("Failed to fetch teacher experiences and education");
+        }
       } catch (err) {
+        // This catch block will only run if there's an error in the try block itself
+        // not from the Promise.allSettled results
+        console.log("Error in loadData function:", err);
         setError("Failed to load teacher data");
-        console.error("Error loading teacher experience/education:", err);
       } finally {
         setIsLoading(false);
       }

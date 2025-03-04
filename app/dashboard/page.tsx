@@ -7,6 +7,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { TeacherProfile, Review, Profile } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
+import TeacherExperienceEducation from "@/app/components/TeacherExperienceEducation";
 
 // Create a single Supabase client instance to be reused
 const supabase = createClientComponentClient();
@@ -405,6 +406,14 @@ function TeacherDashboard({
   error,
   onRefresh,
 }: DashboardProps) {
+  const [experienceError, setExperienceError] = useState<string | null>(null);
+
+  // Handle errors from the TeacherExperienceEducation component
+  const handleExperienceError = useCallback((err: string) => {
+    console.log("Experience component error handled:", err);
+    setExperienceError(err);
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="bg-white shadow rounded-lg p-6">
@@ -510,8 +519,49 @@ function TeacherDashboard({
           <p className="text-center text-gray-600 py-4">No reviews yet</p>
         )}
       </div>
+
+      {teacherProfile && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Experience & Education
+          </h2>
+          <CustomErrorBoundary fallback={<p className="text-red-500">Failed to load experience and education data. Please try again later.</p>}>
+            <TeacherExperienceEducation 
+              teacherId={teacherProfile.id} 
+            />
+          </CustomErrorBoundary>
+        </div>
+      )}
     </div>
   );
+}
+
+// Simple error boundary component
+function CustomErrorBoundary({ children, fallback }: { children: React.ReactNode, fallback: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+  
+  useEffect(() => {
+    const errorHandler = (event: ErrorEvent) => {
+      if (event.error && event.error.message.includes("Failed to fetch teacher")) {
+        console.log("Caught error in error boundary:", event.error);
+        setHasError(true);
+        // Prevent the error from propagating
+        event.preventDefault();
+      }
+    };
+    
+    window.addEventListener('error', errorHandler);
+    
+    return () => {
+      window.removeEventListener('error', errorHandler);
+    };
+  }, []);
+  
+  if (hasError) {
+    return <>{fallback}</>;
+  }
+  
+  return <>{children}</>;
 }
 
 function StudentDashboard({ profile }: { profile: Profile }) {

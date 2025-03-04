@@ -48,7 +48,7 @@ const mockTeacher = {
       institution: "Brilliant Tutorials",
       period: "2014 - 2018",
       description:
-        "Conducted classes for high school students and competitive exam preparation.",
+        "Taught mathematics to high school students preparing for board exams.",
     },
     {
       title: "Private Tutor",
@@ -60,63 +60,67 @@ const mockTeacher = {
   education: [
     {
       degree: "M.Sc. Mathematics",
-      institution: "IIT Bombay",
+      institution: "Indian Institute of Technology, Delhi",
       year: "2012",
+      description: "Specialized in Applied Mathematics and Statistics",
     },
     {
       degree: "B.Sc. Mathematics",
-      institution: "St. Xavier's College",
+      institution: "Delhi University",
       year: "2010",
+      description: "Graduated with honors, top 5% of class",
     },
   ],
+  about:
+    "I am a passionate mathematics teacher with over 8 years of experience teaching students from grades 8-12 and preparing them for competitive exams. My teaching philosophy focuses on building strong fundamentals and problem-solving skills rather than rote learning. I believe every student can excel in mathematics with the right guidance and practice.",
   rating: 4.8,
   reviewsCount: 124,
   students: 450,
   tags: ["Online", "10+ years", "High School", "IIT-JEE"],
-  about: `Experienced Mathematics teacher specializing in IIT-JEE preparation. I have helped over 400 students achieve their academic goals with a personalized teaching approach.
-
-My teaching methodology focuses on building strong fundamentals and problem-solving skills. I believe in making Mathematics interesting and relatable through real-world examples.`,
+  subjects: ["Mathematics", "Physics", "IIT-JEE", "NEET"],
   achievements: [
     "100% success rate in IIT-JEE Advanced",
     "15 students ranked under AIR 1000",
     "Average improvement of 35% in student scores",
   ],
-  subjects: ["Mathematics", "Physics", "IIT-JEE", "NEET"],
-  avatarIndex: 1,
   isVerified: true,
   isFeatured: true,
+  avatarIndex: 1,
   reviews: [
     {
       id: 1,
-      student: "Rahul Kumar",
-      avatar: "/avatars/avatar3.jpg",
-      rating: 5,
-      date: "2 weeks ago",
-      comment:
-        "Excellent teacher! Her teaching methodology helped me understand complex concepts easily.",
-    },
-    {
-      id: 2,
-      student: "Priya Patel",
-      avatar: "/avatars/avatar4.jpg",
-      rating: 4,
-      date: "1 month ago",
-      comment:
-        "Very patient and thorough with explanations. Helped me improve my grades significantly.",
-    },
-    {
-      id: 3,
-      student: "Amit Shah",
-      avatar: "/avatars/avatar5.jpg",
+      name: "Rahul Mehta",
       rating: 5,
       date: "2 months ago",
       comment:
-        "Great at explaining difficult topics. Always punctual and well-prepared for classes.",
+        "Ms. Sharma is an exceptional teacher who explains complex concepts in a simple manner. My daughter's grades improved significantly after taking her classes.",
+      avatar: "/avatars/rahul.jpg",
+    },
+    {
+      id: 2,
+      name: "Ananya Patel",
+      rating: 4,
+      date: "3 months ago",
+      comment:
+        "Very methodical approach to teaching. Provides excellent practice materials and is always available to clear doubts.",
+      avatar: "/avatars/ananya.jpg",
+    },
+    {
+      id: 3,
+      name: "Vikram Singh",
+      rating: 5,
+      date: "5 months ago",
+      comment:
+        "Best mathematics teacher I've encountered. Her techniques for solving problems quickly have been invaluable for my JEE preparation.",
+      avatar: "/avatars/vikram.jpg",
     },
   ],
 };
 
 export default function TeacherProfile({ params }: { params: { id: string } }) {
+  // Access params.id directly but store it in a variable to avoid multiple accesses
+  const teacherId = params.id;
+  
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
   const [isFavorite, setIsFavorite] = useState(false);
@@ -141,7 +145,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
             profiles(*)
           `
           )
-          .eq("id", params.id)
+          .eq("id", teacherId)
           .single();
 
         if (error) {
@@ -151,16 +155,16 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
 
         setTeacher(data);
       } catch (err) {
-        console.error("Error in fetchTeacherProfile:", err);
+        console.error("Failed to fetch teacher profile:", err);
       } finally {
         setIsLoading(false);
       }
     }
 
-    if (params.id) {
+    if (teacherId) {
       fetchTeacherProfile();
     }
-  }, [params.id, supabase]);
+  }, [teacherId, supabase]);
 
   const totalExperience = useMemo(() => {
     // If we have real data, we'll calculate from that
@@ -303,7 +307,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {(teacher?.tags || mockTeacher.tags).map((tag) => (
+                    {(teacher?.tags || mockTeacher.tags).map((tag: string) => (
                       <span
                         key={tag}
                         className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm"
@@ -354,25 +358,23 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                     <div>
                       <h3 className="text-lg font-medium mb-3">Subjects</h3>
                       <div className="flex flex-wrap gap-2">
-                        {(teacher?.subject || mockTeacher.subjects).map(
-                          (subject) => (
-                            <span
-                              key={subject}
-                              className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm"
-                            >
-                              {subject}
-                            </span>
-                          )
-                        )}
+                        {(teacher?.subject || mockTeacher.subjects).map((subject: string) => (
+                          <span
+                            key={subject}
+                            className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm"
+                          >
+                            {subject}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-medium mb-3">Achievements</h3>
-                      <ul className="space-y-2">
-                        {mockTeacher.achievements.map((achievement, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <Award className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <h3 className="text-lg font-medium mt-6">Achievements</h3>
+                      <ul className="mt-2 space-y-2">
+                        {mockTeacher.achievements.map((achievement: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                             <span>{achievement}</span>
                           </li>
                         ))}
@@ -468,7 +470,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                             <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100">
                               <Image
                                 src={review.avatar}
-                                alt={review.student}
+                                alt={review.name}
                                 fill
                                 sizes="40px"
                                 className="object-cover"
@@ -477,7 +479,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
                             <div className="flex-grow">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h4 className="font-medium">
-                                  {review.student}
+                                  {review.name}
                                 </h4>
                                 <span className="text-sm text-gray-500">
                                   {review.date}
