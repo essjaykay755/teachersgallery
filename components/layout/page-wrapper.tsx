@@ -1,27 +1,27 @@
-"use client"
+"use client";
 
-import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import Footer from "@/components/footer"
-import Navbar from "@/components/navbar"
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import Footer from "@/components/footer";
+import Navbar from "@/components/navbar";
 
 export default function PageWrapper({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   if (!mounted) {
-    return <>{children}</>
+    return <>{children}</>;
   }
 
-  const isAdminPage = pathname?.startsWith("/admin")
+  const isAdminPage = pathname?.startsWith("/admin");
 
   return (
     <>
@@ -29,5 +29,5 @@ export default function PageWrapper({
       {children}
       {!isAdminPage && <Footer />}
     </>
-  )
-} 
+  );
+}

@@ -1,18 +1,24 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import TeacherCard from "@/components/teacher-card"
-import { ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, X } from "lucide-react"
-import { AnimatedContainer, slideRight } from "@/components/ui/animations"
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import TeacherCard from "@/components/teacher-card";
+import {
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import { AnimatedContainer, slideRight } from "@/components/ui/animations";
 
 const dummyTeachers = [
   {
@@ -28,7 +34,7 @@ const dummyTeachers = [
     tags: ["Online", "10+ years", "High School", "IIT-JEE"],
     date: "20 May, 2023",
     color: "bg-blue-50",
-    featured: true
+    featured: true,
   },
   {
     id: "rajesh-kumar",
@@ -43,7 +49,7 @@ const dummyTeachers = [
     tags: ["Offline", "8 years", "CBSE", "NEET"],
     date: "4 Feb, 2023",
     color: "bg-green-50",
-    featured: true
+    featured: true,
   },
   {
     id: "anjali-desai",
@@ -57,7 +63,7 @@ const dummyTeachers = [
     isVerified: true,
     tags: ["Hybrid", "5 years", "ICSE", "Primary"],
     date: "29 Jan, 2023",
-    color: "bg-purple-50"
+    color: "bg-purple-50",
   },
   {
     id: "debanjan-chakraborty",
@@ -71,7 +77,7 @@ const dummyTeachers = [
     isVerified: true,
     tags: ["Offline", "12 years", "WBCHSE", "NEET"],
     date: "15 Mar, 2023",
-    color: "bg-orange-50"
+    color: "bg-orange-50",
   },
   {
     id: "srabanti-mukherjee",
@@ -85,7 +91,7 @@ const dummyTeachers = [
     isVerified: true,
     tags: ["Hybrid", "7 years", "WBBSE", "HS"],
     date: "8 Apr, 2023",
-    color: "bg-pink-50"
+    color: "bg-pink-50",
   },
   {
     id: "soumitra-banerjee",
@@ -99,7 +105,7 @@ const dummyTeachers = [
     isVerified: true,
     tags: ["Online", "15 years", "WBCHSE", "JEE"],
     date: "12 Mar, 2023",
-    color: "bg-indigo-50"
+    color: "bg-indigo-50",
   },
   {
     id: "tanushree-das",
@@ -113,15 +119,15 @@ const dummyTeachers = [
     isVerified: true,
     tags: ["Hybrid", "9 years", "WBCHSE", "NEET"],
     date: "25 Feb, 2023",
-    color: "bg-rose-50"
-  }
-]
+    color: "bg-rose-50",
+  },
+];
 
 export default function Home() {
-  const [feeRange, setFeeRange] = useState([500, 5000])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showFilters, setShowFilters] = useState(false)
-  const totalPages = 10
+  const [feeRange, setFeeRange] = useState([500, 5000]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+  const totalPages = 10;
 
   const FiltersContent = () => (
     <div className="space-y-6">
@@ -200,11 +206,19 @@ export default function Home() {
         <h3 className="font-medium">Teaching Mode</h3>
         <div className="space-y-2">
           <label className="flex items-center gap-2">
-            <input type="checkbox" className="rounded border-gray-300" defaultChecked />
+            <input
+              type="checkbox"
+              className="rounded border-gray-300"
+              defaultChecked
+            />
             <span>Online</span>
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" className="rounded border-gray-300" defaultChecked />
+            <input
+              type="checkbox"
+              className="rounded border-gray-300"
+              defaultChecked
+            />
             <span>Offline</span>
           </label>
           <label className="flex items-center gap-2">
@@ -219,11 +233,19 @@ export default function Home() {
         <h3 className="font-medium">Availability</h3>
         <div className="space-y-2">
           <label className="flex items-center gap-2">
-            <input type="checkbox" className="rounded border-gray-300" defaultChecked />
+            <input
+              type="checkbox"
+              className="rounded border-gray-300"
+              defaultChecked
+            />
             <span>Weekdays</span>
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" className="rounded border-gray-300" defaultChecked />
+            <input
+              type="checkbox"
+              className="rounded border-gray-300"
+              defaultChecked
+            />
             <span>Weekends</span>
           </label>
           <label className="flex items-center gap-2">
@@ -233,7 +255,7 @@ export default function Home() {
         </div>
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -247,10 +269,12 @@ export default function Home() {
                   <GraduationCap className="w-5 h-5 text-blue-400" />
                 </div>
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight">
-                  Get your best teacher with <span className="text-blue-400">TeachersGallery</span>
+                  Get your best teacher with{" "}
+                  <span className="text-blue-400">TeachersGallery</span>
                 </h1>
                 <p className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto">
-                  Find the perfect teacher for your learning journey. Choose from our curated selection of experienced educators.
+                  Find the perfect teacher for your learning journey. Choose
+                  from our curated selection of experienced educators.
                 </p>
               </div>
             </div>
@@ -283,11 +307,18 @@ export default function Home() {
           {/* Mobile/Tablet Filter Sidebar */}
           {showFilters && (
             <div className="fixed inset-0 bg-black/50 z-40 lg:hidden">
-              <AnimatedContainer animation={slideRight} className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-lg">
+              <AnimatedContainer
+                animation={slideRight}
+                className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-lg"
+              >
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between p-4 border-b">
                     <h2 className="text-lg font-semibold">Filters</h2>
-                    <Button variant="ghost" size="icon" onClick={() => setShowFilters(false)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowFilters(false)}
+                    >
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
@@ -295,7 +326,10 @@ export default function Home() {
                     <FiltersContent />
                   </div>
                   <div className="p-4 border-t">
-                    <Button className="w-full" onClick={() => setShowFilters(false)}>
+                    <Button
+                      className="w-full"
+                      onClick={() => setShowFilters(false)}
+                    >
                       Apply Filters
                     </Button>
                   </div>
@@ -309,7 +343,9 @@ export default function Home() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold">All Teachers</h2>
-                <span className="rounded-full bg-gray-100 px-3 py-0.5 text-sm">386</span>
+                <span className="rounded-full bg-gray-100 px-3 py-0.5 text-sm">
+                  386
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Sort by:</span>
@@ -329,10 +365,7 @@ export default function Home() {
             {/* Teachers Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {dummyTeachers.map((teacher) => (
-                <TeacherCard
-                  key={teacher.id}
-                  teacher={teacher}
-                />
+                <TeacherCard key={teacher.id} teacher={teacher} />
               ))}
             </div>
 
@@ -348,13 +381,15 @@ export default function Home() {
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page => {
-                    return page === 1 || 
-                           page === totalPages || 
-                           Math.abs(currentPage - page) <= 1
+                  .filter((page) => {
+                    return (
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(currentPage - page) <= 1
+                    );
                   })
                   .map((page, index, array) => (
                     <React.Fragment key={page}>
@@ -376,7 +411,9 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="default"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="flex items-center gap-2 h-10 px-4 transition-colors"
               >
@@ -388,6 +425,5 @@ export default function Home() {
         </div>
       </main>
     </div>
-  )
+  );
 }
-

@@ -1,0 +1,202 @@
+## INSTRUCTIONS
+
+During your interaction with the user, if you find anything reusable in this project (for example, a version of a library or a model name), especially regarding a fix to a mistake you made or a correction you received, make sure to record it in the Lessons section of this file so you will not repeat the same error.
+
+Use this file as a scratchpad to organize your thoughts. IMPORTANT: When beginning a new composer chat session, do not simply clear the scratchpad. Instead, follow these guidelines:
+
+1. CHECK FOR EXISTING SESSIONS
+
+   - Before starting a new task, review the scratchpad to see if previous composer chat sessions exist.
+
+2. NEW SESSION HEADER
+
+   - If previous session data is present, insert a new header to mark the beginning of the current session. For example:  
+     Session [Session_ID] - [YYYY-MM-DD HH:MM:SS]
+   - This will help separate notes from different sessions.
+
+3. ARCHIVE AND APPEND
+
+   - Do not remove previous sessions. If necessary, move irrelevant or finished task entries to an archive section within the scratchpad.
+   - Continue adding new tasks and progress under the current session header.
+
+4. REFERENCE HISTORY
+   - Always refer back to previous sessions (e.g., "xyz changes were made during Session 1") to maintain continuity and ensure corrections or improvements are carried forward.
+
+WHEN YOU RECEIVE A NEW TASK:
+
+- First, review the entire scratchpad (including all session entries).
+- Clearly explain the new task and plan the steps you need to complete it.
+- Use todo markers for tracking progress. For example:  
+  [X] Task 1  
+  [ ] Task 2
+- Update the task progress in the scratchpad as you complete subtasks.
+- After reaching a milestone, add a brief reflection to record insights that may be useful for future sessions.
+- ALWAYS ADD NEXT STEPS: Append the scratchpad with a section summarizing the next steps to be taken and any improvements identified from the current session. This ensures that every session ends with a clear action plan for continuous progress.
+
+## LESSONS
+
+User Specified Lessons:
+
+- You have a Python virtual environment located in ./venv. Use it.
+- Include useful debugging information in the program output.
+- Read this file carefully before attempting any edits.
+- When using git and the GitHub CLI (gh) to submit a multiline commit message, first write the message in a file, then use a command like:
+  git commit -F <filename>
+  After committing, remove the file. Always include "[Cursor] " in the commit message and PR title.
+
+Cursor Learned:
+
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries.
+- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration.
+- When using seaborn styles in matplotlib, use "seaborn-v0_8" instead of "seaborn" due to recent version changes.
+- Use "gpt-4o" as the model name for OpenAI's GPT-4 with vision capabilities.
+- When implementing file uploads in Next.js with Supabase storage, ensure proper file size validation and type checking before upload.
+- When implementing pagination with Supabase, use the range() function with offset for better performance than limit/offset.
+- When implementing OAuth with Supabase, ensure proper session handling and route protection in middleware.
+- When implementing multi-step forms, use a state machine pattern to manage the flow and data persistence.
+
+## SCRATCHPAD
+
+Session 1 - [2024-02-12 11:09:00]
+
+Task: Build TeachersGallery.com backend with Supabase integration
+
+Progress:
+[X] Set up Supabase client configuration and types
+[X] Create database schema with tables and RLS policies
+[X] Implement essential API routes:
+[X] Teacher profiles (GET/POST)
+[X] Reviews (GET/POST)
+[X] Messages (GET/POST)
+[X] Add authentication middleware
+[X] Configure environment variables
+
+Technical Decisions:
+
+- Used @supabase/auth-helpers-nextjs for server-side auth
+- Implemented Row Level Security (RLS) for all tables
+- Added automatic rating updates via triggers
+- Set up proper TypeScript types for all entities
+
+Reflection:
+The initial backend implementation focuses on core features while maintaining security through RLS policies and proper authentication. The schema design allows for easy expansion while keeping the current functionality focused and maintainable.
+
+Session 2 - [2024-02-12 11:45:00]
+
+Task: Implement profile management and file upload functionality
+
+Progress:
+[X] Create profile management endpoints:
+[X] GET /api/profile - Fetch user profile with teacher details
+[X] PUT /api/profile - Update user profile
+[X] DELETE /api/profile - Delete user account
+[X] Implement file upload functionality:
+[X] Create uploadAvatar utility function
+[X] Add avatar upload endpoint
+[X] Add file validation and size limits
+[X] Update profile with avatar URL
+
+Technical Decisions:
+
+- Added 2MB file size limit for avatars
+- Implemented strict image type validation
+- Used unique file names with user ID and timestamp
+- Added cascading delete for user profiles
+
+Reflection:
+Enhanced the backend with proper profile management and secure file upload capabilities. The implementation includes proper validation and error handling, ensuring a robust user experience.
+
+Session 3 - [2024-02-12 12:15:00]
+
+Task: Implement pagination for GET endpoints
+
+Progress:
+[X] Create pagination types and interfaces
+[X] Update teachers endpoint with pagination:
+[X] Add page and limit parameters
+[X] Implement count query for total results
+[X] Return paginated response with metadata
+[X] Update reviews endpoint with pagination:
+[X] Add page and limit parameters
+[X] Implement count query for total results
+[X] Return paginated response with metadata
+
+Technical Decisions:
+
+- Set default page size to 10 items
+- Added maximum page size limit of 50 items
+- Used Supabase's range() function for efficient pagination
+- Included total count and hasMore flag in response metadata
+- Added proper type safety with TypeScript interfaces
+
+Reflection:
+Implemented efficient pagination for better performance and user experience. The solution includes proper parameter validation, reasonable defaults, and clear metadata for client-side pagination handling.
+
+Session 4 - [2024-02-12 12:45:00]
+
+Task: Implement Google Sign-In and dynamic authentication
+
+Progress:
+[X] Create authentication utilities:
+[X] Add Google OAuth configuration
+[X] Implement signInWithGoogle function
+[X] Add signOut and getCurrentUser functions
+[X] Set up authentication flow:
+[X] Create auth callback route
+[X] Update middleware for protected routes
+[X] Add AuthProvider context
+[X] Create login page:
+[X] Add Google Sign-In button
+[X] Handle authentication flow
+[X] Show loading and error states
+
+Technical Decisions:
+
+- Used Supabase OAuth for Google authentication
+- Implemented client-side auth utilities with proper error handling
+- Created AuthProvider context for managing auth state
+- Added route protection with dynamic redirects
+- Used proper TypeScript types for auth-related data
+
+Reflection:
+Successfully implemented a secure and user-friendly authentication system with Google Sign-In. The solution includes proper error handling, loading states, and route protection, making the application more dynamic and secure.
+
+Session 5 - [2024-02-12 13:15:00]
+
+Task: Implement user onboarding flow
+
+Progress:
+[X] Create onboarding types and interfaces
+[X] Implement onboarding steps:
+[X] User type selection
+[X] Profile details with avatar upload
+[X] Teacher profile details (conditional)
+[X] Add state management:
+[X] Step progression logic
+[X] Data persistence between steps
+[X] Form validation
+[X] Implement UI components:
+[X] Step indicators
+[X] Form layouts
+[X] Loading and error states
+
+Technical Decisions:
+
+- Used multi-step form pattern for better UX
+- Implemented state machine for managing form flow
+- Added client-side validation for all forms
+- Used conditional rendering for teacher-specific fields
+- Integrated with existing file upload functionality
+
+Reflection:
+Created a comprehensive onboarding flow that guides users through profile creation with a smooth, intuitive interface. The implementation handles different user types appropriately and ensures all necessary information is collected before completing the process.
+
+NEXT STEPS & IMPROVEMENTS:
+
+- Add form validation with proper error messages
+- Implement progress persistence (save draft)
+- Add back button functionality
+- Implement email notifications for new messages
+- Add search functionality with proper indexing
+- Set up automated testing
+- Add cleanup job for unused avatar files

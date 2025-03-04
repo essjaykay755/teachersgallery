@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import PageWrapper from "@/components/layout/page-wrapper";
+import { AuthProvider } from "@/lib/contexts/auth";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,14 +33,18 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <PageWrapper>
-          {children}
-        </PageWrapper>
+      <body
+        className={`${inter.className} antialiased`}
+        suppressHydrationWarning
+      >
+        <AuthProvider>
+          <PageWrapper>{children}</PageWrapper>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

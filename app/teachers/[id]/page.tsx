@@ -1,17 +1,35 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, MapPin, Star, Clock, Users, Award, CheckCircle, Phone, MessageSquare, Heart, Briefcase, GraduationCap, School, AlertTriangle } from "lucide-react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { Textarea } from "@/components/ui/textarea"
-import { StarRating } from "@/components/ui/star-rating"
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ArrowLeft,
+  MapPin,
+  Star,
+  Clock,
+  Users,
+  Award,
+  CheckCircle,
+  Phone,
+  MessageSquare,
+  Heart,
+  Briefcase,
+  GraduationCap,
+  School,
+  AlertTriangle,
+} from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Textarea } from "@/components/ui/textarea";
+import { StarRating } from "@/components/ui/star-rating";
+import TeacherExperienceEducation from "@/app/components/TeacherExperienceEducation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { TeacherProfile } from "@/lib/supabase";
 
 // Update mock teacher data
-const teacher = {
+const mockTeacher = {
   id: "priya-sharma",
   name: "Priya Sharma",
   subject: "Mathematics",
@@ -22,32 +40,34 @@ const teacher = {
       title: "Senior Mathematics Teacher",
       institution: "Excel Academy",
       period: "2018 - Present",
-      description: "Teaching IIT-JEE and NEET aspirants with focus on advanced mathematics."
+      description:
+        "Teaching IIT-JEE and NEET aspirants with focus on advanced mathematics.",
     },
     {
       title: "Mathematics Faculty",
       institution: "Brilliant Tutorials",
       period: "2014 - 2018",
-      description: "Conducted classes for high school students and competitive exam preparation."
+      description:
+        "Conducted classes for high school students and competitive exam preparation.",
     },
     {
       title: "Private Tutor",
       institution: "Self-employed",
       period: "2012 - 2014",
-      description: "One-on-one tutoring for high school mathematics."
-    }
+      description: "One-on-one tutoring for high school mathematics.",
+    },
   ],
   education: [
     {
       degree: "M.Sc. Mathematics",
       institution: "IIT Bombay",
-      year: "2012"
+      year: "2012",
     },
     {
       degree: "B.Sc. Mathematics",
       institution: "St. Xavier's College",
-      year: "2010"
-    }
+      year: "2010",
+    },
   ],
   rating: 4.8,
   reviewsCount: 124,
@@ -72,7 +92,8 @@ My teaching methodology focuses on building strong fundamentals and problem-solv
       avatar: "/avatars/avatar3.jpg",
       rating: 5,
       date: "2 weeks ago",
-      comment: "Excellent teacher! Her teaching methodology helped me understand complex concepts easily.",
+      comment:
+        "Excellent teacher! Her teaching methodology helped me understand complex concepts easily.",
     },
     {
       id: 2,
@@ -80,7 +101,8 @@ My teaching methodology focuses on building strong fundamentals and problem-solv
       avatar: "/avatars/avatar4.jpg",
       rating: 4,
       date: "1 month ago",
-      comment: "Very patient and thorough with explanations. Helped me improve my grades significantly.",
+      comment:
+        "Very patient and thorough with explanations. Helped me improve my grades significantly.",
     },
     {
       id: 3,
@@ -88,54 +110,99 @@ My teaching methodology focuses on building strong fundamentals and problem-solv
       avatar: "/avatars/avatar5.jpg",
       rating: 5,
       date: "2 months ago",
-      comment: "Great at explaining difficult topics. Always punctual and well-prepared for classes.",
-    }
-  ]
-}
+      comment:
+        "Great at explaining difficult topics. Always punctual and well-prepared for classes.",
+    },
+  ],
+};
 
-export default function TeacherProfile() {
-  const [isClient, setIsClient] = useState(false)
-  const [activeTab, setActiveTab] = useState("about")
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewComment, setReviewComment] = useState("")
-  const router = useRouter()
+export default function TeacherProfile({ params }: { params: { id: string } }) {
+  const [isClient, setIsClient] = useState(false);
+  const [activeTab, setActiveTab] = useState("about");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
-    setIsClient(true)
-  }, [])
+    setIsClient(true);
+
+    async function fetchTeacherProfile() {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from("teacher_profiles")
+          .select(
+            `
+            *,
+            profiles(*)
+          `
+          )
+          .eq("id", params.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching teacher profile:", error);
+          return;
+        }
+
+        setTeacher(data);
+      } catch (err) {
+        console.error("Error in fetchTeacherProfile:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (params.id) {
+      fetchTeacherProfile();
+    }
+  }, [params.id, supabase]);
 
   const totalExperience = useMemo(() => {
-    const currentYear = 2024 // Using a fixed year instead of dynamic calculation
-    const startYear = Math.min(...teacher.experience.map(exp => {
-      const startYear = exp.period.split(" - ")[0]
-      return parseInt(startYear)
-    }))
-    return `${currentYear - startYear}+ years`
-  }, [teacher.experience])
+    // If we have real data, we'll calculate from that
+    // For now, using mock data
+    const currentYear = 2024; // Using a fixed year instead of dynamic calculation
+    const startYear = Math.min(
+      ...mockTeacher.experience.map((exp) => {
+        const startYear = exp.period.split(" - ")[0];
+        return parseInt(startYear);
+      })
+    );
+    return `${currentYear - startYear}+ years`;
+  }, []);
 
-  const handleRequestContact = useCallback((type: 'phone' | 'whatsapp') => {
-    if (!isClient) return
-    console.log(`Requesting ${type} number...`)
-  }, [isClient])
+  const handleRequestContact = useCallback(
+    (type: "phone" | "whatsapp") => {
+      if (!isClient) return;
+      console.log(`Requesting ${type} number...`);
+    },
+    [isClient]
+  );
 
   const handleSubmitReview = useCallback(() => {
-    if (!isClient) return
-    console.log({ rating: reviewRating, comment: reviewComment })
-    setReviewComment("")
-  }, [isClient, reviewRating, reviewComment])
+    if (!isClient) return;
+    console.log({ rating: reviewRating, comment: reviewComment });
+    setReviewComment("");
+  }, [isClient, reviewRating, reviewComment]);
 
   const handleReport = useCallback(() => {
-    if (!isClient) return
-    console.log('Reporting teacher...')
-  }, [isClient])
+    if (!isClient) return;
+    console.log("Reporting teacher...");
+  }, [isClient]);
+
+  // Use mock data while loading or if no data is available
+  const displayTeacher = teacher || mockTeacher;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="mb-6 hover:bg-gray-100"
           onClick={() => router.back()}
         >
@@ -152,8 +219,11 @@ export default function TeacherProfile() {
                 <div className="relative">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-100">
                     <Image
-                      src={`/avatars/avatar${teacher.avatarIndex}.jpg`}
-                      alt={teacher.name}
+                      src={
+                        teacher?.profiles?.avatar_url ||
+                        `/avatars/avatar${mockTeacher.avatarIndex}.jpg`
+                      }
+                      alt={teacher?.profiles?.full_name || mockTeacher.name}
                       fill
                       className="object-cover"
                     />
@@ -162,47 +232,65 @@ export default function TeacherProfile() {
                     variant="ghost"
                     size="icon"
                     className={`absolute -bottom-3 -right-3 h-9 w-9 rounded-full bg-white shadow-md border ${
-                      isFavorite ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-gray-500'
+                      isFavorite
+                        ? "text-red-500 hover:text-red-600"
+                        : "text-gray-400 hover:text-gray-500"
                     }`}
                     onClick={() => setIsFavorite(!isFavorite)}
                   >
-                    <Heart className="h-5 w-5" fill={isFavorite ? "currentColor" : "none"} />
+                    <Heart
+                      className="h-5 w-5"
+                      fill={isFavorite ? "currentColor" : "none"}
+                    />
                   </Button>
                 </div>
                 <div className="flex-grow w-full">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h1 className="text-2xl font-semibold">{teacher.name}</h1>
-                        {teacher.isVerified && (
+                        <h1 className="text-2xl font-semibold">
+                          {teacher?.profiles?.full_name || mockTeacher.name}
+                        </h1>
+                        {(teacher?.is_verified || mockTeacher.isVerified) && (
                           <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium">
                             <CheckCircle className="h-3.5 w-3.5" />
                             <span>Verified</span>
                           </div>
                         )}
-                        {teacher.isFeatured && (
+                        {mockTeacher.isFeatured && (
                           <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
                             <Star className="h-3.5 w-3.5 fill-blue-400 stroke-blue-400" />
                             <span>Featured</span>
                           </div>
                         )}
                       </div>
-                      <p className="text-gray-600">{teacher.subject} Teacher</p>
+                      <p className="text-gray-600">
+                        {teacher?.subject?.[0] || mockTeacher.subject} Teacher
+                      </p>
                       <div className="flex items-center gap-2 text-gray-500 mt-2">
                         <MapPin className="h-4 w-4" />
-                        <span>{teacher.location}</span>
+                        <span>{teacher?.location || mockTeacher.location}</span>
                       </div>
                     </div>
                     <div className="mt-2 sm:mt-0 sm:text-right">
-                      <div className="text-2xl font-semibold text-blue-600">{teacher.fee}</div>
+                      <div className="text-2xl font-semibold text-blue-600">
+                        {teacher?.fee || mockTeacher.fee}
+                      </div>
                       <div className="text-sm text-gray-500">per hour</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-4">
                     <div className="flex items-center gap-1">
-                      <StarRating rating={teacher.rating} />
-                      <span className="font-medium">{teacher.rating}</span>
-                      <span className="text-gray-500">({teacher.reviewsCount} reviews)</span>
+                      <StarRating
+                        rating={teacher?.rating || mockTeacher.rating}
+                      />
+                      <span className="font-medium">
+                        {teacher?.rating || mockTeacher.rating}
+                      </span>
+                      <span className="text-gray-500">
+                        ({teacher?.reviews_count || mockTeacher.reviewsCount}{" "}
+                        reviews)
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Clock className="h-4 w-4" />
@@ -210,11 +298,11 @@ export default function TeacherProfile() {
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Users className="h-4 w-4" />
-                      <span>{teacher.students}+ students</span>
+                      <span>{mockTeacher.students}+ students</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {teacher.tags.map((tag) => (
+                    {(teacher?.tags || mockTeacher.tags).map((tag) => (
                       <span
                         key={tag}
                         className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm"
@@ -250,169 +338,190 @@ export default function TeacherProfile() {
                     Reviews
                   </TabsTrigger>
                 </TabsList>
+
                 <TabsContent value="about" className="p-6">
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-medium mb-2">About Me</h3>
-                      <p className="text-gray-600 whitespace-pre-line">{teacher.about}</p>
+                      <h3 className="text-lg font-medium mb-3">
+                        About {teacher?.profiles?.full_name || mockTeacher.name}
+                      </h3>
+                      <p className="text-gray-700 whitespace-pre-line">
+                        {teacher?.about || mockTeacher.about}
+                      </p>
                     </div>
+
                     <div>
-                      <h3 className="font-medium mb-2">Achievements</h3>
+                      <h3 className="text-lg font-medium mb-3">Subjects</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(teacher?.subject || mockTeacher.subjects).map(
+                          (subject) => (
+                            <span
+                              key={subject}
+                              className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm"
+                            >
+                              {subject}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Achievements</h3>
                       <ul className="space-y-2">
-                        {teacher.achievements.map((achievement) => (
-                          <li key={achievement} className="flex items-start gap-2">
-                            <Award className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-gray-600">{achievement}</span>
+                        {mockTeacher.achievements.map((achievement, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <Award className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                            <span>{achievement}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Subjects</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {teacher.subjects.map((subject) => (
-                          <span
-                            key={subject}
-                            className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-sm"
-                          >
-                            {subject}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 </TabsContent>
+
                 <TabsContent value="experience" className="p-6">
-                  <div className="space-y-8">
-                    {/* Verification Status */}
-                    <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
-                      <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle className="h-6 w-6 text-green-600" />
-                      </div>
+                  {teacher ? (
+                    <TeacherExperienceEducation teacherId={teacher.id} />
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Experience Section */}
                       <div>
-                        <h4 className="font-medium">Verified Teacher</h4>
-                        <p className="text-sm text-gray-600">
-                          Background and credentials verified by TeachersGallery
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Education */}
-                    <div>
-                      <h3 className="font-medium mb-4 flex items-center gap-2">
-                        <GraduationCap className="h-5 w-5" />
-                        Education
-                      </h3>
-                      <div className="space-y-4">
-                        {teacher.education.map((edu, index) => (
-                          <div key={index} className="flex items-start gap-3">
-                            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <School className="h-4 w-4 text-blue-500" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">
+                          Work Experience
+                        </h3>
+                        <div className="space-y-4">
+                          {mockTeacher.experience.map((exp, index) => (
+                            <div
+                              key={index}
+                              className="border border-gray-200 rounded-md p-4"
+                            >
+                              <h4 className="font-medium">{exp.title}</h4>
+                              <p className="text-sm text-gray-600">
+                                {exp.institution}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {exp.period}
+                              </p>
+                              {exp.description && (
+                                <p className="mt-2 text-sm">
+                                  {exp.description}
+                                </p>
+                              )}
                             </div>
-                            <div>
-                              <h4 className="font-medium">{edu.degree}</h4>
-                              <p className="text-sm text-gray-600">{edu.institution}</p>
-                              <p className="text-sm text-gray-500">{edu.year}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Work Experience */}
-                    <div>
-                      <h3 className="font-medium mb-4 flex items-center gap-2">
-                        <Briefcase className="h-5 w-5" />
-                        Teaching Experience
-                      </h3>
-                      <div className="space-y-6">
-                        {teacher.experience.map((exp, index) => (
-                          <div key={index} className="relative pl-6 pb-6 last:pb-0">
-                            {index !== teacher.experience.length - 1 && (
-                              <div className="absolute left-[11px] top-3 bottom-0 w-[2px] bg-gray-200" />
-                            )}
-                            <div className="flex items-start gap-4">
-                              <div className="absolute left-0 top-[10px] h-[10px] w-[10px] rounded-full bg-blue-500 ring-4 ring-blue-50" />
-                              <div className="flex-grow pt-1">
-                                <h4 className="font-medium">{exp.title}</h4>
-                                <p className="text-sm text-gray-600">{exp.institution}</p>
-                                <p className="text-sm text-gray-500 mt-1">{exp.period}</p>
-                                <p className="text-sm text-gray-600 mt-2">{exp.description}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="reviews" className="p-6">
-                  <div className="space-y-8">
-                    {/* Review Summary */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold">{teacher.rating}</span>
-                          <StarRating rating={teacher.rating} size="lg" />
+                          ))}
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">Based on {teacher.reviewsCount} reviews</p>
                       </div>
-                      <Button onClick={() => document.getElementById('write-review')?.focus()}>
-                        Write a Review
-                      </Button>
+
+                      {/* Education Section */}
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">
+                          Education
+                        </h3>
+                        <div className="space-y-4">
+                          {mockTeacher.education.map((edu, index) => (
+                            <div
+                              key={index}
+                              className="border border-gray-200 rounded-md p-4"
+                            >
+                              <h4 className="font-medium">{edu.degree}</h4>
+                              <p className="text-sm text-gray-600">
+                                {edu.institution}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {edu.year}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="reviews" className="p-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Student Reviews</h3>
+                      <div className="flex items-center gap-1">
+                        <StarRating
+                          rating={teacher?.rating || mockTeacher.rating}
+                        />
+                        <span className="font-medium">
+                          {teacher?.rating || mockTeacher.rating}
+                        </span>
+                        <span className="text-gray-500">
+                          ({teacher?.reviews_count || mockTeacher.reviewsCount}{" "}
+                          reviews)
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Review List */}
-                    <div className="space-y-6">
-                      {teacher.reviews.map((review) => (
-                        <div key={review.id} className="border-b pb-6 last:border-0">
-                          <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="space-y-4">
+                      {mockTeacher.reviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className="border border-gray-200 rounded-md p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100">
                               <Image
                                 src={review.avatar}
                                 alt={review.student}
-                                width={40}
-                                height={40}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
                               />
                             </div>
                             <div className="flex-grow">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium">{review.student}</h4>
-                                <span className="text-sm text-gray-500">{review.date}</span>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="font-medium">
+                                  {review.student}
+                                </h4>
+                                <span className="text-sm text-gray-500">
+                                  {review.date}
+                                </span>
                               </div>
-                              <StarRating rating={review.rating} />
-                              <p className="text-gray-600 mt-2">{review.comment}</p>
+                              <div className="mt-1">
+                                <StarRating rating={review.rating} size="sm" />
+                              </div>
+                              <p className="mt-2 text-gray-700">
+                                {review.comment}
+                              </p>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Write Review */}
                     <div className="border-t pt-6">
-                      <h3 className="font-medium mb-4">Write a Review</h3>
+                      <h4 className="font-medium mb-3">Write a Review</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium mb-2">Rating</label>
-                          <StarRating 
-                            rating={reviewRating} 
-                            interactive 
-                            onRatingChange={setReviewRating} 
-                            size="lg"
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Rating
+                          </label>
+                          <StarRating
+                            rating={reviewRating}
+                            interactive
+                            onRatingChange={setReviewRating}
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Your Review</label>
+                          <label
+                            htmlFor="comment"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Your Review
+                          </label>
                           <Textarea
-                            id="write-review"
-                            placeholder="Share your experience with this teacher..."
+                            id="comment"
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
-                            className="min-h-[100px]"
+                            placeholder="Share your experience with this teacher..."
+                            rows={4}
                           />
                         </div>
-                        <Button 
+                        <Button
                           onClick={handleSubmitReview}
                           disabled={!reviewComment.trim()}
                         >
@@ -428,41 +537,57 @@ export default function TeacherProfile() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card className="p-6 space-y-4 sticky top-8">
-              <h3 className="font-medium">Contact {teacher.name.split(" ")[0]}</h3>
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() => handleRequestContact('phone')}
-              >
-                <Phone className="h-4 w-4" />
-                Request Phone Number
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() => handleRequestContact('whatsapp')}
-              >
-                <MessageSquare className="h-4 w-4" />
-                Request WhatsApp
-              </Button>
-              <Button className="w-full">
-                Send Message
-              </Button>
-              <div className="pt-2 border-t">
-                <Button 
-                  variant="ghost" 
-                  className="w-full flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleReport}
+            {/* Contact Card */}
+            <Card className="p-6">
+              <h3 className="text-lg font-medium mb-4">Contact Teacher</h3>
+              <div className="space-y-3">
+                <Button
+                  className="w-full justify-start"
+                  onClick={() => handleRequestContact("phone")}
                 >
-                  <AlertTriangle className="h-4 w-4" />
-                  Report User
+                  <Phone className="h-4 w-4 mr-2" />
+                  Request Phone Number
                 </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => handleRequestContact("whatsapp")}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Message on WhatsApp
+                </Button>
+              </div>
+              <div className="mt-4 text-sm text-gray-500">
+                <p>
+                  Contact information will be shared after confirmation from the
+                  teacher.
+                </p>
+              </div>
+            </Card>
+
+            {/* Report Card */}
+            <Card className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                <div>
+                  <h3 className="font-medium">Report this Teacher</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    If you find any inappropriate content or behavior, please
+                    report it.
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="mt-2 text-red-600 hover:text-red-700 hover:bg-red-50 p-0 h-auto"
+                    onClick={handleReport}
+                  >
+                    Report an Issue
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
         </div>
       </main>
     </div>
-  )
-} 
+  );
+}

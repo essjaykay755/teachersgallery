@@ -1,55 +1,79 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import Link from "next/link"
-import { MapPin, LogOut, User, Menu, X, Search, Home, MessageSquare, HelpCircle } from "lucide-react"
-import { useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import Image from "next/image";
+import Link from "next/link";
+import {
+  MapPin,
+  LogOut,
+  User,
+  Menu,
+  X,
+  Search,
+  Home,
+  MessageSquare,
+  HelpCircle,
+} from "lucide-react";
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { AnimatedContainer, fadeIn, slideDown, slideRight, slideLeft } from "@/components/ui/animations"
-import { useDebounce } from "@/hooks/useDebounce"
+} from "@/components/ui/popover";
+import {
+  AnimatedContainer,
+  fadeIn,
+  slideDown,
+  slideRight,
+  slideLeft,
+} from "@/components/ui/animations";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/lib/contexts/auth";
+import { signOut } from "@/lib/auth";
 
 // Mock locations data
 const locations = [
   {
     city: "Mumbai",
     state: "Maharashtra",
-    areas: ["Andheri", "Bandra", "Juhu", "Powai", "Worli"]
+    areas: ["Andheri", "Bandra", "Juhu", "Powai", "Worli"],
   },
   {
     city: "Delhi",
     state: "Delhi NCR",
-    areas: ["South Delhi", "North Delhi", "Noida", "Gurgaon", "Faridabad"]
+    areas: ["South Delhi", "North Delhi", "Noida", "Gurgaon", "Faridabad"],
   },
   {
     city: "Bangalore",
     state: "Karnataka",
-    areas: ["Koramangala", "Indiranagar", "Whitefield", "HSR Layout", "JP Nagar"]
+    areas: [
+      "Koramangala",
+      "Indiranagar",
+      "Whitefield",
+      "HSR Layout",
+      "JP Nagar",
+    ],
   },
   {
     city: "Kolkata",
     state: "West Bengal",
-    areas: ["Salt Lake", "Park Street", "New Town", "Ballygunge", "Behala"]
+    areas: ["Salt Lake", "Park Street", "New Town", "Ballygunge", "Behala"],
   },
   {
     city: "Chennai",
     state: "Tamil Nadu",
-    areas: ["T Nagar", "Anna Nagar", "Adyar", "Velachery", "Mylapore"]
-  }
-]
+    areas: ["T Nagar", "Anna Nagar", "Adyar", "Velachery", "Mylapore"],
+  },
+];
 
 // Mock notifications data
 const mockNotifications = [
@@ -74,33 +98,34 @@ const mockNotifications = [
     time: "2 days ago",
     read: true,
   },
-]
+];
 
 export default function Navbar() {
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showLocationPicker, setShowLocationPicker] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [showSearchModal, setShowSearchModal] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const debouncedSearchQuery = useDebounce(searchQuery)
+  const { user, profile } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery);
   const [selectedLocation, setSelectedLocation] = useState({
     city: "Mumbai",
-    state: "Maharashtra"
-  })
-  const router = useRouter()
-  const pathname = usePathname()
+    state: "Maharashtra",
+  });
+  const router = useRouter();
+  const pathname = usePathname();
 
   const handleLocationSelect = (city: string, state: string) => {
-    setSelectedLocation({ city, state })
-    setShowLocationPicker(false)
+    setSelectedLocation({ city, state });
+    setShowLocationPicker(false);
     // Add logic to update location in your app state/context
-  }
+  };
 
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...')
-  }
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/auth/login");
+  };
 
   return (
     <>
@@ -127,34 +152,34 @@ export default function Navbar() {
                 />
               </Link>
               <nav className="hidden lg:flex items-center gap-8">
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className={`text-sm px-4 py-2 rounded-full flex items-center gap-2 ${
-                    pathname === '/' 
-                      ? 'text-white bg-white/10' 
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                    pathname === "/"
+                      ? "text-white bg-white/10"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <Home className="h-4 w-4" />
                   <span>Find Teachers</span>
                 </Link>
-                <Link 
-                  href="/messages" 
+                <Link
+                  href="/messages"
                   className={`text-sm px-4 py-2 rounded-full flex items-center gap-2 ${
-                    pathname === '/messages' 
-                      ? 'text-white bg-white/10' 
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                    pathname === "/messages"
+                      ? "text-white bg-white/10"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span>Messages</span>
                 </Link>
-                <Link 
-                  href="/faq" 
+                <Link
+                  href="/faq"
                   className={`text-sm px-4 py-2 rounded-full flex items-center gap-2 ${
-                    pathname === '/faq' 
-                      ? 'text-white bg-white/10' 
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                    pathname === "/faq"
+                      ? "text-white bg-white/10"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <HelpCircle className="h-4 w-4" />
@@ -186,21 +211,30 @@ export default function Navbar() {
               </button>
 
               {/* Location Picker (Both Mobile and Desktop) */}
-              <Popover open={showLocationPicker} onOpenChange={setShowLocationPicker}>
+              <Popover
+                open={showLocationPicker}
+                onOpenChange={setShowLocationPicker}
+              >
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex items-center gap-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full px-4"
                   >
                     <MapPin className="h-4 w-4" />
-                    <span className="hidden md:inline text-sm">{selectedLocation.city}, {selectedLocation.state}</span>
+                    <span className="hidden md:inline text-sm">
+                      {selectedLocation.city}, {selectedLocation.state}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px] p-0" align="end">
                   <Command>
                     <div className="px-3 py-2 border-b">
-                      <div className="text-sm text-gray-500">Current location</div>
-                      <div className="font-medium">{selectedLocation.city}, {selectedLocation.state}</div>
+                      <div className="text-sm text-gray-500">
+                        Current location
+                      </div>
+                      <div className="font-medium">
+                        {selectedLocation.city}, {selectedLocation.state}
+                      </div>
                     </div>
                     <CommandInput placeholder="Search location..." />
                     <CommandEmpty>No location found.</CommandEmpty>
@@ -208,13 +242,17 @@ export default function Navbar() {
                       {locations.map((location) => (
                         <CommandItem
                           key={location.city}
-                          onSelect={() => handleLocationSelect(location.city, location.state)}
+                          onSelect={() =>
+                            handleLocationSelect(location.city, location.state)
+                          }
                           className="flex items-center gap-2 cursor-pointer"
                         >
                           <MapPin className="h-4 w-4" />
                           <div>
                             <div className="font-medium">{location.city}</div>
-                            <div className="text-sm text-gray-500">{location.state}</div>
+                            <div className="text-sm text-gray-500">
+                              {location.state}
+                            </div>
                           </div>
                         </CommandItem>
                       ))}
@@ -224,11 +262,16 @@ export default function Navbar() {
               </Popover>
 
               <div className="relative">
-                <button 
+                <button
                   className="p-2 text-white/70 hover:text-white"
                   onClick={() => setShowNotifications(!showNotifications)}
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -238,27 +281,36 @@ export default function Navbar() {
                   </svg>
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                
+
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-100">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        Notifications
+                      </h3>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {mockNotifications.map((notification) => (
                         <div
                           key={notification.id}
                           className={`px-4 py-3 hover:bg-gray-50 ${
-                            !notification.read ? 'bg-blue-50' : ''
+                            !notification.read ? "bg-blue-50" : ""
                           }`}
                         >
-                          <p className="text-sm text-gray-800">{notification.content}</p>
-                          <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                          <p className="text-sm text-gray-800">
+                            {notification.content}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {notification.time}
+                          </p>
                         </div>
                       ))}
                     </div>
                     <div className="px-4 py-2 border-t border-gray-100">
-                      <Link href="/notifications" className="text-sm text-blue-500 hover:text-blue-600">
+                      <Link
+                        href="/notifications"
+                        className="text-sm text-blue-500 hover:text-blue-600"
+                      >
                         View all notifications
                       </Link>
                     </div>
@@ -266,30 +318,56 @@ export default function Navbar() {
                 )}
               </div>
               <div className="relative">
-                <button 
+                <button
                   className="h-8 w-8 overflow-hidden rounded-full"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
-                  <Image
-                    src="/avatar.jpg"
-                    alt="User avatar"
-                    width={32}
-                    height={32}
-                    className="h-full w-full object-cover"
-                    priority
-                  />
+                  {user ? (
+                    <img
+                      src={profile?.avatar_url || "/default-avatar.png"}
+                      alt="User avatar"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Link
+                      href="/auth/login"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Sign In
+                    </Link>
+                  )}
                 </button>
 
-                {showUserMenu && (
+                {showUserMenu && user && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                    <Link 
-                      href="/account" 
+                    <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                      <p className="font-medium">{profile?.full_name}</p>
+                      <p className="text-gray-500">{user.email}</p>
+                    </div>
+                    <Link
+                      href="/dashboard"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <User className="h-4 w-4" />
-                      Account
+                      Dashboard
                     </Link>
-                    <button 
+                    <Link
+                      href="/account/settings"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <User className="h-4 w-4" />
+                      Account Settings
+                    </Link>
+                    {profile?.user_type === "teacher" && (
+                      <Link
+                        href="/settings/teacher-profile"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <User className="h-4 w-4" />
+                        Teacher Profile
+                      </Link>
+                    )}
+                    <button
                       onClick={handleLogout}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
                     >
@@ -306,28 +384,31 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {showMobileMenu && (
           <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
-            <AnimatedContainer animation={slideLeft} className="fixed inset-y-0 left-0 w-full max-w-[280px] bg-[#111111] shadow-lg">
+            <AnimatedContainer
+              animation={slideLeft}
+              className="fixed inset-y-0 left-0 w-full max-w-[280px] bg-[#111111] shadow-lg"
+            >
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                   <h2 className="text-lg font-semibold text-white">Menu</h2>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-white/70 hover:text-white hover:bg-white/10"
                     onClick={() => setShowMobileMenu(false)}
                   >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto py-4">
                   <nav className="space-y-2 px-4">
                     <Link
                       href="/"
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm ${
-                        pathname === '/' 
-                          ? 'bg-white/10 text-white' 
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        pathname === "/"
+                          ? "bg-white/10 text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
                       }`}
                       onClick={() => setShowMobileMenu(false)}
                     >
@@ -337,9 +418,9 @@ export default function Navbar() {
                     <Link
                       href="/messages"
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm ${
-                        pathname === '/messages' 
-                          ? 'bg-white/10 text-white' 
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        pathname === "/messages"
+                          ? "bg-white/10 text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
                       }`}
                       onClick={() => setShowMobileMenu(false)}
                     >
@@ -349,9 +430,9 @@ export default function Navbar() {
                     <Link
                       href="/faq"
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm ${
-                        pathname === '/faq' 
-                          ? 'bg-white/10 text-white' 
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        pathname === "/faq"
+                          ? "bg-white/10 text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
                       }`}
                       onClick={() => setShowMobileMenu(false)}
                     >
@@ -390,5 +471,5 @@ export default function Navbar() {
         </div>
       )}
     </>
-  )
-} 
+  );
+}
