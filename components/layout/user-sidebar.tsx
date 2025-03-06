@@ -57,7 +57,7 @@ const getSidebarLinks = (userType: string | undefined): SidebarItem[] => {
     }
   ];
 
-  // Add teacher profile link if user is a teacher
+  // Add user type specific links
   if (userType === "teacher") {
     links.push({
       title: "Teacher Profile",
@@ -67,8 +67,36 @@ const getSidebarLinks = (userType: string | undefined): SidebarItem[] => {
     
     // Add students assigned link for teachers
     links.push({
-      title: "Students Assigned",
+      title: "Assigned Students",
       href: "/assigned-students",
+      icon: Users,
+    });
+  } else if (userType === "student") {
+    // Add student profile link
+    links.push({
+      title: "Student Profile",
+      href: "/student-profile",
+      icon: GraduationCap,
+    });
+    
+    // Add assigned teachers link for students
+    links.push({
+      title: "Assigned Teachers",
+      href: "/assigned-teachers",
+      icon: Users,
+    });
+  } else if (userType === "parent") {
+    // Add parent profile link
+    links.push({
+      title: "Parent Profile",
+      href: "/parent-profile",
+      icon: GraduationCap,
+    });
+    
+    // Add assigned teachers link for parents
+    links.push({
+      title: "Assigned Teachers",
+      href: "/assigned-teachers",
       icon: Users,
     });
   }
@@ -106,6 +134,21 @@ export default function UserSidebar() {
       fullProfile: profile
     });
   }, [profile]);
+  
+  useEffect(() => {
+    // Debug the user type and sidebar links generation
+    const generatedLinks = getSidebarLinks(profile?.user_type);
+    console.log("UserSidebar: Generated links based on user type:", {
+      userType: profile?.user_type,
+      linkCount: generatedLinks.length,
+      linkTitles: generatedLinks.map(link => {
+        if (isGroup(link)) {
+          return `Group: ${link.title} with ${link.items.length} items`;
+        }
+        return link.title;
+      })
+    });
+  }, [profile?.user_type]);
   
   const handleSignOut = async () => {
     await signOut();

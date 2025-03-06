@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { signInWithGoogle, signInWithEmail } from "@/lib/auth";
@@ -263,12 +262,10 @@ export default function LoginPage() {
                     {isLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
                     ) : (
-                      <Image
+                      <img
                         src="/google.svg"
                         alt="Google"
-                        width={20}
-                        height={20}
-                        className="w-5 h-auto"
+                        className="w-5 h-5"
                       />
                     )}
                     <span>

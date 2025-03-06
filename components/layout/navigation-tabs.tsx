@@ -61,8 +61,38 @@ export default function NavigationTabs() {
     
     // Add students assigned option for teachers
     navItems.push({
-      title: "Students Assigned",
+      title: "Assigned Students",
       href: "/assigned-students",
+      icon: Users,
+    });
+  } 
+  // Add student profile if user is a student
+  else if (profile?.user_type === "student") {
+    navItems.push({
+      title: "Student Profile", 
+      href: "/student-profile",
+      icon: GraduationCap,
+    });
+    
+    // Add assigned teachers for students
+    navItems.push({
+      title: "Assigned Teachers",
+      href: "/assigned-teachers", 
+      icon: Users,
+    });
+  }
+  // Add parent profile if user is a parent
+  else if (profile?.user_type === "parent") {
+    navItems.push({
+      title: "Parent Profile",
+      href: "/parent-profile",
+      icon: GraduationCap, 
+    });
+    
+    // Add assigned teachers for parents
+    navItems.push({
+      title: "Assigned Teachers",
+      href: "/assigned-teachers",
       icon: Users,
     });
   }
@@ -73,6 +103,14 @@ export default function NavigationTabs() {
     href: "/notifications",
     icon: Bell,
   });
+
+  // Debug navigation items
+  useEffect(() => {
+    console.log("NavigationTabs: Generated navigation items:", {
+      userType: profile?.user_type,
+      navItems: navItems.map(item => item.title)
+    });
+  }, [profile?.user_type, navItems]);
 
   return (
     <Card>

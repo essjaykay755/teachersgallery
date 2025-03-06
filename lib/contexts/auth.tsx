@@ -73,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Ensure user_type is set
       const userType = data.user_type || "unknown";
+      console.log("AuthProvider: Normalized user type:", userType);
       
       const profile = {
         ...data,
