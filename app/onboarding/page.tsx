@@ -286,6 +286,14 @@ export default function OnboardingPage() {
           .single();
 
         if (profileError) throw profileError;
+        
+        // Log profile data after creation
+        console.log("Onboarding: Profile created with data:", {
+          profileId: profileData?.id,
+          userType: profileData?.user_type,
+          selectedUserType: newState.userData.userType,
+          fullProfileData: profileData
+        });
 
         // If user is a student, store grade info
         if (newState.userData.userType === "student" && profileData) {

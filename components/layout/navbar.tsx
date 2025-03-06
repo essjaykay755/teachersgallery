@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/contexts/auth";
 import { Menu, Transition } from "@headlessui/react";
 import { signOut } from "@/lib/auth";
 import { Menu as MenuIcon, X, User } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback, AvatarWithTypeIndicator } from "@/components/ui/avatar";
 
 export default function Navbar() {
   const { user, profile } = useAuth();
@@ -20,6 +20,15 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // Debug profile data
+  useEffect(() => {
+    console.log("Navbar: Profile data:", {
+      hasProfile: !!profile,
+      userType: profile?.user_type,
+      fullProfile: profile
+    });
+  }, [profile]);
 
   const handleSignOut = async () => {
     try {
@@ -53,15 +62,13 @@ export default function Navbar() {
             {user ? (
               <Menu as="div" className="ml-3 relative">
                 <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                  <Avatar size="sm">
-                    <AvatarImage 
-                      src={profile?.avatar_url} 
-                      alt={profile?.full_name || "User avatar"} 
-                    />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <AvatarWithTypeIndicator
+                    size="sm"
+                    src={profile?.avatar_url}
+                    alt={profile?.full_name || "User avatar"}
+                    userType={profile?.user_type || "unknown"}
+                    fallback={<User className="h-4 w-4" />}
+                  />
                 </Menu.Button>
                 <Transition
                   as={Fragment}
@@ -77,15 +84,14 @@ export default function Navbar() {
                       {({ active }) => (
                         <div className="px-4 py-2 text-sm border-b flex items-center gap-3">
                           <div className="flex-shrink-0">
-                            <Avatar size="sm" className="!min-w-8 !min-h-8">
-                              <AvatarImage 
-                                src={profile?.avatar_url} 
-                                alt={profile?.full_name || "User avatar"} 
-                              />
-                              <AvatarFallback>
-                                <User className="h-4 w-4" />
-                              </AvatarFallback>
-                            </Avatar>
+                            <AvatarWithTypeIndicator
+                              size="sm"
+                              className="!min-w-8 !min-h-8"
+                              src={profile?.avatar_url}
+                              alt={profile?.full_name || "User avatar"}
+                              userType={profile?.user_type || "unknown"}
+                              fallback={<User className="h-4 w-4" />}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-700">{profile?.full_name || "User"}</p>

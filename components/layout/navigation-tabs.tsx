@@ -15,11 +15,21 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback, AvatarWithTypeIndicator } from "@/components/ui/avatar";
+import { useEffect } from "react";
 
 export default function NavigationTabs() {
   const { user, profile } = useAuth();
   const pathname = usePathname();
+
+  // Debug profile data
+  useEffect(() => {
+    console.log("NavigationTabs: Profile data:", {
+      hasProfile: !!profile,
+      userType: profile?.user_type,
+      fullProfile: profile
+    });
+  }, [profile]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -71,19 +81,14 @@ export default function NavigationTabs() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
-              <Avatar size="lg" className="!h-12 !w-12 rounded-full">
-                <AvatarImage
-                  src={profile?.avatar_url}
-                  alt={profile?.full_name || "User avatar"}
-                  onError={(e) => {
-                    console.error("Avatar image failed to load");
-                  }}
-                  className="object-cover"
-                />
-                <AvatarFallback>
-                  <User className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
+              <AvatarWithTypeIndicator
+                size="lg"
+                className="!h-12 !w-12 rounded-full"
+                src={profile?.avatar_url}
+                alt={profile?.full_name || "User avatar"}
+                userType={profile?.user_type}
+                fallback={<User className="h-6 w-6" />}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-gray-900 truncate">{profile?.full_name || "User"}</p>

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage, AvatarWithTypeIndicator } from "@/components/ui/avatar";
 import { uploadAvatar } from "@/lib/upload";
 import { Loader2, User } from "lucide-react";
 
@@ -153,12 +153,14 @@ export default function ProfileSettings() {
             <div className="space-y-4">
               <FormLabel>Profile Picture</FormLabel>
               <div className="flex items-center gap-5">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={avatarUrl || ""} alt="Profile" />
-                  <AvatarFallback>
-                    {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : <User />}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarWithTypeIndicator
+                  size="xl"
+                  className="w-20 h-20"
+                  src={avatarUrl || ""}
+                  alt="Profile"
+                  userType={profile?.user_type}
+                  fallback={profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : <User />}
+                />
                 <div>
                   <Input 
                     type="file" 

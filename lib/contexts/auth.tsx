@@ -64,14 +64,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { profile: null, error: null };
       }
       
+      // Debug raw data
+      console.log("AuthProvider: Raw profile data:", JSON.stringify(data));
+      console.log("AuthProvider: User type from DB:", data.user_type);
+      
       // Clean up avatar_url - ensure it's a valid URL or default avatar
       const avatarUrl = data.avatar_url?.trim();
+      
+      // Ensure user_type is set
+      const userType = data.user_type || "unknown";
+      
       const profile = {
         ...data,
+        user_type: userType, // Ensure user_type is set explicitly
         avatar_url: avatarUrl && avatarUrl !== "" ? avatarUrl : "/default-avatar.png"
       };
       
-      console.log(`AuthProvider: Profile found for user ${userId}, avatar:`, profile.avatar_url);
+      console.log(`AuthProvider: Profile processed for user ${userId}, user_type: ${profile.user_type}, avatar:`, profile.avatar_url);
       return { profile, error: null };
     } catch (err) {
       console.error("Exception fetching profile:", err);
@@ -102,7 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (user) {
       console.log("AuthProvider: Manually refreshing profile");
-      await checkUserProfile(user.id);
+      
+      // Clear the lastCheckedUserId to force a fresh check
+      setLastCheckedUserId(null);
+      
+      // Fetch fresh profile data
+      const { profile: freshProfile, error: fetchError } = await fetchProfileData(user.id);
+      
+      if (fetchError) {
+        console.error("Error refreshing profile:", fetchError);
+        setError(fetchError);
+      } else {
+        console.log("AuthProvider: Profile refreshed successfully:", {
+          hasProfile: !!freshProfile,
+          userType: freshProfile?.user_type
+        });
+        setProfile(freshProfile);
+        setError(null);
+      }
     }
   };
 

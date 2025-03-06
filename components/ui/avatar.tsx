@@ -210,4 +210,85 @@ export function LegacyAvatar({
   );
 }
 
-export { Avatar, AvatarImage, AvatarFallback }; 
+export { Avatar, AvatarImage, AvatarFallback };
+
+// Add a new component for avatar with type indicator
+interface AvatarWithTypeIndicatorProps extends AvatarProps {
+  userType?: 'teacher' | 'student' | 'parent' | string;
+  src?: string;
+  alt?: string;
+  fallback?: React.ReactNode;
+}
+
+export function AvatarWithTypeIndicator({
+  userType,
+  size = "md",
+  src,
+  alt = "User avatar",
+  fallback,
+  className,
+  ...props
+}: AvatarWithTypeIndicatorProps) {
+  // Debug user type
+  React.useEffect(() => {
+    console.log("Avatar rendering with userType:", userType);
+  }, [userType]);
+
+  // Map user type to display letter
+  const getTypeIndicator = (type?: string): string => {
+    if (!type) return 'U';
+    
+    switch (type.toLowerCase()) {
+      case 'teacher': return 'T';
+      case 'student': return 'S';
+      case 'parent': return 'P';
+      default: return 'U'; // Unknown
+    }
+  };
+
+  // Get background color based on user type
+  const getTypeColor = (type?: string): string => {
+    if (!type) return 'bg-gray-500';
+    
+    switch (type.toLowerCase()) {
+      case 'teacher': return 'bg-blue-500'; // Blue for teachers (from hero section)
+      case 'student': return 'bg-green-500';
+      case 'parent': return 'bg-purple-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Avatar size={size} className={className} {...props}>
+        {src && (
+          <AvatarImage
+            src={src}
+            alt={alt}
+            onError={(e) => {
+              console.error("Avatar image failed to load");
+            }}
+          />
+        )}
+        <AvatarFallback>
+          {fallback || <User className="h-1/2 w-1/2" />}
+        </AvatarFallback>
+      </Avatar>
+
+      {/* Show the badge for all user types, including "unknown" */}
+      {userType && (
+        <div 
+          className={`absolute -bottom-1 -right-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white
+            ${getTypeColor(userType)}
+            ${size === 'sm' ? 'w-4 h-4 text-[8px]' : 
+              size === 'md' ? 'w-5 h-5 text-[10px]' : 
+              size === 'lg' ? 'w-6 h-6 text-xs' : 
+              'w-7 h-7 text-sm'}`}
+          aria-label={`User type: ${userType}`}
+        >
+          {getTypeIndicator(userType)}
+        </div>
+      )}
+    </div>
+  );
+} 

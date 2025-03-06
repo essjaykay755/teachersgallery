@@ -38,8 +38,14 @@ export default function AccountSettingsPage() {
     email: user?.email || "user@example.com",
     phone: profile?.phone || "+91 9876543210",
     avatar: profile?.avatar_url || "/default-avatar.png",
-    type: profile?.user_type || "teacher",
+    type: profile?.user_type || "unknown",
   };
+
+  console.log("Account settings: Profile data:", {
+    hasProfile: !!profile,
+    userType: profile?.user_type,
+    mockType: mockUser.type
+  });
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -110,15 +116,22 @@ export default function AccountSettingsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="userType">User Type</Label>
-                      <Select defaultValue={mockUser.type}>
-                        <SelectTrigger id="userType">
-                          <SelectValue placeholder="Select user type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="teacher">Teacher</SelectItem>
-                          <SelectItem value="student">Student</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <Select defaultValue={mockUser.type} disabled>
+                          <SelectTrigger id="userType" className="bg-gray-100">
+                            <SelectValue placeholder="Select user type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="teacher">Teacher</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="parent">Parent</SelectItem>
+                            <SelectItem value="unknown">Unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          User type cannot be changed after the onboarding process.
+                        </div>
+                      </div>
                     </div>
                   </div>
 
