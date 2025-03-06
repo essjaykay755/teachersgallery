@@ -16,7 +16,11 @@ export type PaginatedResponse<T> = {
 export type OnboardingStep =
   | "user-type"
   | "profile-details"
+  | "student-details"
+  | "parent-details"
   | "teacher-details"
+  | "teacher-qualifications"
+  | "teacher-preferences"
   | "complete";
 
 export type OnboardingState = {
@@ -24,14 +28,30 @@ export type OnboardingState = {
   userData: {
     userType?: "teacher" | "student" | "parent";
     fullName?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
     phone?: string;
     avatarUrl?: string;
+    // Student-specific fields
+    grade?: string;
+    interests?: string[];
+    // Parent-specific fields
+    childrenCount?: string;
+    childrenGrades?: string[];
+    // Teacher-specific fields
     teacherProfile?: {
       subject: string[];
       location: string;
       fee: string;
       about: string;
       tags: string[];
+      // Teaching preferences
+      teachingModes?: string[];
+      experience?: string;
+      degree?: string;
+      specialization?: string;
+      // Educational and professional background
       experiences?: Array<{
         title: string;
         institution: string;

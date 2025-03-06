@@ -37,7 +37,7 @@ export default function AccountSettingsPage() {
     name: profile?.full_name || "Sam Fisher",
     email: user?.email || "user@example.com",
     phone: profile?.phone || "+91 9876543210",
-    avatar: profile?.avatar_url || "/avatar.jpg",
+    avatar: profile?.avatar_url || "/default-avatar.png",
     type: profile?.user_type || "teacher",
   };
 

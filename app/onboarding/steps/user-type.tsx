@@ -1,98 +1,180 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { OnboardingState } from "@/lib/types";
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   initialData: OnboardingState["userData"];
   onNext: (data: Partial<OnboardingState["userData"]>) => void;
   isLoading: boolean;
+  showBackButton: boolean;
+  onBack: () => void;
 };
 
 export default function UserTypeStep({
   initialData,
   onNext,
   isLoading,
+  showBackButton,
+  onBack,
 }: Props) {
   const [userType, setUserType] = useState<"teacher" | "student" | "parent">(
     initialData.userType || "student"
   );
 
+  useEffect(() => {
+    console.log("UserTypeStep: initialData changed", initialData);
+    if (initialData.userType) {
+      setUserType(initialData.userType);
+    }
+  }, [initialData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("UserTypeStep: Submitting with userType", userType);
     onNext({ userType });
   };
 
+  // Simple direct handler for changing user type
+  const selectUserType = (type: "teacher" | "student" | "parent") => {
+    console.log("UserTypeStep: Directly selecting user type", type);
+    setUserType(type);
+  };
+
+  console.log("UserTypeStep rendering with userType:", userType, "initialData:", initialData);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">
-          Welcome to TeachersGallery
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
+    <>
+      <CardHeader>
+        <CardTitle>Welcome to TeachersGallery</CardTitle>
+        <CardDescription>
           Let's get started by telling us who you are
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <input
-              id="student"
-              name="userType"
-              type="radio"
-              checked={userType === "student"}
-              onChange={() => setUserType("student")}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-            />
-            <label htmlFor="student" className="ml-3">
-              <span className="block text-sm font-medium text-gray-700">
-                I'm a student looking for teachers
-              </span>
-            </label>
+      <CardContent>
+        <form id="user-type-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            {/* Student option */}
+            <div 
+              className={`
+                flex items-start space-x-3 rounded-md border p-4 shadow-sm 
+                hover:border-primary cursor-pointer transition-colors
+                ${userType === "student" ? "border-primary bg-primary/5" : ""}
+              `}
+              onClick={() => selectUserType("student")}
+            >
+              <input
+                type="radio"
+                id="student"
+                name="userType"
+                value="student"
+                checked={userType === "student"}
+                onChange={() => selectUserType("student")}
+                className="mt-1"
+              />
+              <div className="flex flex-col flex-1">
+                <label 
+                  htmlFor="student" 
+                  className="font-medium cursor-pointer w-full"
+                >
+                  I'm a student
+                </label>
+                <span className="text-sm text-muted-foreground">
+                  Looking for qualified teachers
+                </span>
+              </div>
+            </div>
+            
+            {/* Teacher option */}
+            <div 
+              className={`
+                flex items-start space-x-3 rounded-md border p-4 shadow-sm 
+                hover:border-primary cursor-pointer transition-colors
+                ${userType === "teacher" ? "border-primary bg-primary/5" : ""}
+              `}
+              onClick={() => selectUserType("teacher")}
+            >
+              <input
+                type="radio"
+                id="teacher"
+                name="userType"
+                value="teacher"
+                checked={userType === "teacher"}
+                onChange={() => selectUserType("teacher")}
+                className="mt-1"
+              />
+              <div className="flex flex-col flex-1">
+                <label 
+                  htmlFor="teacher" 
+                  className="font-medium cursor-pointer w-full"
+                >
+                  I'm a teacher
+                </label>
+                <span className="text-sm text-muted-foreground">
+                  Looking to connect with students
+                </span>
+              </div>
+            </div>
+            
+            {/* Parent option */}
+            <div 
+              className={`
+                flex items-start space-x-3 rounded-md border p-4 shadow-sm 
+                hover:border-primary cursor-pointer transition-colors
+                ${userType === "parent" ? "border-primary bg-primary/5" : ""}
+              `}
+              onClick={() => selectUserType("parent")}
+            >
+              <input
+                type="radio"
+                id="parent"
+                name="userType"
+                value="parent"
+                checked={userType === "parent"}
+                onChange={() => selectUserType("parent")}
+                className="mt-1"
+              />
+              <div className="flex flex-col flex-1">
+                <label 
+                  htmlFor="parent" 
+                  className="font-medium cursor-pointer w-full"
+                >
+                  I'm a parent
+                </label>
+                <span className="text-sm text-muted-foreground">
+                  Looking for teachers for my child
+                </span>
+              </div>
+            </div>
           </div>
+        </form>
+      </CardContent>
 
-          <div className="flex items-center">
-            <input
-              id="teacher"
-              name="userType"
-              type="radio"
-              checked={userType === "teacher"}
-              onChange={() => setUserType("teacher")}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-            />
-            <label htmlFor="teacher" className="ml-3">
-              <span className="block text-sm font-medium text-gray-700">
-                I'm a teacher looking to connect with students
-              </span>
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="parent"
-              name="userType"
-              type="radio"
-              checked={userType === "parent"}
-              onChange={() => setUserType("parent")}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-            />
-            <label htmlFor="parent" className="ml-3">
-              <span className="block text-sm font-medium text-gray-700">
-                I'm a parent looking for teachers for my child
-              </span>
-            </label>
-          </div>
+      <CardFooter className="flex justify-between">
+        {showBackButton && (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={isLoading}
+          >
+            Back
+          </Button>
+        )}
+        <div className={showBackButton ? "" : "ml-auto"}>
+          <Button
+            type="submit"
+            form="user-type-form"
+            disabled={isLoading}
+          >
+            {isLoading ? "Processing..." : "Continue"}
+          </Button>
         </div>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? "Processing..." : "Continue"}
-        </button>
-      </form>
-    </div>
+      </CardFooter>
+    </>
   );
 }

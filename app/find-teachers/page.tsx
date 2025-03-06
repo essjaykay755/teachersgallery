@@ -137,7 +137,7 @@ export default function FindTeachersPage() {
                   <div className="flex items-center">
                     <img
                       className="h-12 w-12 rounded-full"
-                      src={teacher.profiles?.avatar_url || "/avatar.jpg"}
+                      src={teacher.profiles?.avatar_url || "/default-avatar.png"}
                       alt=""
                     />
                     <div className="ml-4">

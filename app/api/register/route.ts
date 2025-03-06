@@ -105,6 +105,17 @@ export async function POST(request: NextRequest) {
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
+          user_type: userType,
+          needs_onboarding: true,
+          registration_data: {
+            phone,
+            experience,
+            teachingModes,
+            degree,
+            specialization,
+            grade,
+            childrenCount,
+          },
         },
       });
 
@@ -134,121 +145,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create profile with service role (bypassing RLS)
-    console.log("Creating user profile...");
-    const profileData: any = {
-      id: authData.user.id,
-      full_name: fullName,
-      email,
-      user_type: userType,
-      avatar_url: avatarUrl || "",
-    };
+    // Create a route handler client to set cookies
+    const supabaseRouteHandler = createRouteHandlerClient({ cookies });
 
-    // Add optional fields based on user type
-    if (phone) profileData.phone = phone;
-    if (userType === "student" && grade) profileData.grade = grade;
-    if (userType === "parent" && childrenCount)
-      profileData.children_count = parseInt(childrenCount);
-
-    console.log("Profile data to insert:", profileData);
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert(profileData);
-
-    if (profileError) {
-      console.error("Profile error:", profileError);
-      // Log more details about the error
-      if (profileError.details) {
-        console.error("Profile error details:", profileError.details);
-      }
-      if (profileError.hint) {
-        console.error("Profile error hint:", profileError.hint);
-      }
-      return NextResponse.json(
-        { error: profileError.message },
-        { status: 400 }
-      );
-    }
-
-    // If teacher, create teacher profile and related records
-    if (userType === "teacher") {
-      console.log("Creating teacher profile...");
-      const teacherData: any = {
-        user_id: authData.user.id,
-        subject: [],
-        location: "",
-        fee: "",
-        about: "",
-        tags: [],
-      };
-
-      console.log("Teacher data to insert:", teacherData);
-      const { data: teacherProfile, error: teacherError } = await supabaseAdmin
-        .from("teacher_profiles")
-        .insert(teacherData)
-        .select()
-        .single();
-
-      if (teacherError) {
-        console.error("Teacher profile error:", teacherError);
-        if (teacherError.details) {
-          console.error("Teacher profile error details:", teacherError.details);
-        }
-        if (teacherError.hint) {
-          console.error("Teacher profile error hint:", teacherError.hint);
-        }
-        return NextResponse.json(
-          { error: teacherError.message },
-          { status: 400 }
-        );
-      }
-
-      // If we have education details, create an education record
-      if (degree && teacherProfile) {
-        console.log("Creating teacher education record...");
-        const educationData = {
-          teacher_id: teacherProfile.id,
-          degree,
-          institution: specialization || "Not specified", // Using specialization as institution if provided
-          year: new Date().getFullYear().toString(), // Default to current year
-          description: "", // Optional field
-        };
-
-        const { error: educationError } = await supabaseAdmin
-          .from("teacher_education")
-          .insert(educationData);
-
-        if (educationError) {
-          console.error("Education record error:", educationError);
-          // We'll continue even if education record creation fails
-        }
-      }
-
-      // If we have experience details, create an experience record
-      if (experience && teacherProfile) {
-        console.log("Creating teacher experience record...");
-        const experienceData = {
-          teacher_id: teacherProfile.id,
-          title: "Teaching Experience",
-          institution: "Previous Institution",
-          period: experience, // Using the experience value as the period
-          description: "", // Optional field
-        };
-
-        const { error: experienceError } = await supabaseAdmin
-          .from("teacher_experience")
-          .insert(experienceData);
-
-        if (experienceError) {
-          console.error("Experience record error:", experienceError);
-          // We'll continue even if experience record creation fails
-        }
-      }
-    }
-
-    // Sign in the user
+    // Sign in the user and set cookies
     const { data: signInData, error: signInError } =
-      await supabaseAdmin.auth.signInWithPassword({
+      await supabaseRouteHandler.auth.signInWithPassword({
         email,
         password,
       });
@@ -258,27 +160,13 @@ export async function POST(request: NextRequest) {
       // We'll still return success since the user was created
     }
 
-    // Wait for a short delay to ensure all database operations are completed
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Get the complete profile data to return
-    const { data: completeProfile, error: profileFetchError } =
-      await supabaseAdmin
-        .from("profiles")
-        .select("*")
-        .eq("id", authData.user.id)
-        .single();
-
-    if (profileFetchError) {
-      console.error("Error fetching complete profile:", profileFetchError);
-    }
-
     console.log("Registration completed successfully");
     return NextResponse.json({
       success: true,
       user: authData.user,
       session: signInData?.session,
-      profile: completeProfile || null,
+      isNewUser: true,
+      redirectTo: "/onboarding",
     });
   } catch (error) {
     console.error("Registration error:", error);

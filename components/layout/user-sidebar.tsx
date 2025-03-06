@@ -148,7 +148,7 @@ export default function UserSidebar() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full overflow-hidden">
                 <img
-                  src={profile?.avatar_url || "/avatar.jpg"}
+                  src={profile?.avatar_url || "/default-avatar.png"}
                   alt="User avatar"
                   className="h-full w-full object-cover"
                 />

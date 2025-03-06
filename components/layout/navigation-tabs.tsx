@@ -71,7 +71,7 @@ export default function NavigationTabs() {
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full overflow-hidden">
               <img
-                src={profile?.avatar_url || "/avatar.jpg"}
+                src={profile?.avatar_url || "/default-avatar.png"}
                 alt="User avatar"
                 className="h-full w-full object-cover"
               />

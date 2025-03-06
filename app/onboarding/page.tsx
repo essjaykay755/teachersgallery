@@ -7,34 +7,121 @@ import type { OnboardingState, OnboardingStep } from "@/lib/types";
 import UserTypeStep from "./steps/user-type";
 import ProfileDetailsStep from "./steps/profile-details";
 import TeacherDetailsStep from "./steps/teacher-details";
+import StudentDetailsStep from "./steps/student-details";
+import ParentDetailsStep from "./steps/parent-details";
+import TeacherQualificationsStep from "./steps/teacher-qualifications";
+import TeacherPreferencesStep from "./steps/teacher-preferences";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { 
+  CheckCircle2, 
+  ChevronRight, 
+  User, 
+  UserPlus, 
+  GraduationCap, 
+  School,
+  BookOpen,
+  UserCog
+} from "lucide-react";
 
 const INITIAL_STATE: OnboardingState = {
   currentStep: "user-type",
   userData: {},
 };
 
+// Step configuration - base steps that are always shown
+const BASE_STEPS = [
+  { id: "user-type", title: "User Type", icon: User },
+  { id: "profile-details", title: "Profile Details", icon: UserPlus },
+];
+
+// User type-specific steps
+const STUDENT_STEPS = [
+  { id: "student-details", title: "Student Details", icon: School },
+];
+
+const PARENT_STEPS = [
+  { id: "parent-details", title: "Parent Details", icon: UserCog },
+];
+
+const TEACHER_STEPS = [
+  { id: "teacher-details", title: "Teaching Profile", icon: BookOpen },
+  { id: "teacher-qualifications", title: "Qualifications", icon: GraduationCap },
+  { id: "teacher-preferences", title: "Preferences", icon: CheckCircle2 },
+];
+
 export default function OnboardingPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, isNewUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [state, setState] = useState<OnboardingState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeSteps, setActiveSteps] = useState(() => [...BASE_STEPS]);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
+    // Add debug logging for the onboarding page
+    console.log("Onboarding page mounted with state:", { 
+      user: !!user,
+      userId: user?.id,
+      profile: !!profile,
+      profileId: profile?.id,
+      isNewUser,
+      authLoading
+    });
+
+    // Skip redirects while still loading auth state
+    if (authLoading) {
+      console.log("Auth still loading, waiting...");
+      return;
+    }
+
     // If user is not logged in, redirect to login
     if (!user) {
+      console.log("No user found, redirecting to login");
       router.replace("/auth/login");
       return;
     }
 
     // If user already has a profile, redirect to dashboard
     if (profile) {
+      console.log("User already has a profile, redirecting to dashboard");
       router.replace("/dashboard");
       return;
     }
-  }, [user, profile, router]);
+
+    // If user is logged in but doesn't have a profile, they should stay on this page
+    console.log("User is in onboarding process, proceeding...");
+  }, [user, profile, isNewUser, authLoading, router]);
+
+  // Update active steps whenever user type or current step changes
+  useEffect(() => {
+    let steps = [...BASE_STEPS];
+    
+    // When going back to user-type step, only show base steps until user selects again
+    if (state.currentStep === "user-type") {
+      setActiveSteps(steps);
+      return;
+    }
+    
+    // Add user type-specific steps
+    if (state.userData.userType === "teacher") {
+      steps = [...steps, ...TEACHER_STEPS];
+    } else if (state.userData.userType === "student") {
+      steps = [...steps, ...STUDENT_STEPS];
+    } else if (state.userData.userType === "parent") {
+      steps = [...steps, ...PARENT_STEPS];
+    }
+    
+    setActiveSteps(steps);
+    
+    // Important: Log the current state for debugging
+    console.log("Steps updated:", { 
+      steps, 
+      userType: state.userData.userType,
+      currentStep: state.currentStep 
+    });
+  }, [state.userData.userType, state.currentStep]);
 
   // Function to ensure the avatars bucket exists
   const ensureAvatarsBucket = async (): Promise<boolean> => {
@@ -59,6 +146,40 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleBack = () => {
+    let previousStep: OnboardingStep = state.currentStep;
+    
+    switch (state.currentStep) {
+      case "profile-details":
+        previousStep = "user-type";
+        break;
+      case "student-details":
+        previousStep = "profile-details";
+        break;
+      case "parent-details":
+        previousStep = "profile-details";
+        break;
+      case "teacher-details":
+        previousStep = "profile-details";
+        break;
+      case "teacher-qualifications":
+        previousStep = "teacher-details";
+        break;
+      case "teacher-preferences":
+        previousStep = "teacher-qualifications";
+        break;
+      default:
+        return; // No back for first step
+    }
+    
+    // When going back to user type, preserve the current selection
+    console.log(`Going back to ${previousStep}, preserving data:`, state.userData);
+    setState(prevState => ({
+      ...prevState,
+      currentStep: previousStep,
+    }));
+  };
+
   const handleNext = async (stepData: Partial<OnboardingState["userData"]>) => {
     try {
       setIsLoading(true);
@@ -70,6 +191,21 @@ export default function OnboardingPage() {
         userData: { ...state.userData, ...stepData },
       };
 
+      // If we're coming from user-type step and the user type has changed,
+      // we need to update the steps immediately
+      if (state.currentStep === "user-type" && stepData.userType) {
+        // Update active steps based on the new user type
+        let updatedSteps = [...BASE_STEPS];
+        if (stepData.userType === "teacher") {
+          updatedSteps = [...updatedSteps, ...TEACHER_STEPS];
+        } else if (stepData.userType === "student") {
+          updatedSteps = [...updatedSteps, ...STUDENT_STEPS];
+        } else if (stepData.userType === "parent") {
+          updatedSteps = [...updatedSteps, ...PARENT_STEPS];
+        }
+        setActiveSteps(updatedSteps);
+      }
+
       // Determine next step
       let nextStep: OnboardingStep = state.currentStep;
       switch (state.currentStep) {
@@ -77,12 +213,30 @@ export default function OnboardingPage() {
           nextStep = "profile-details";
           break;
         case "profile-details":
-          nextStep =
-            newState.userData.userType === "teacher"
-              ? "teacher-details"
-              : "complete";
+          // Different paths based on user type
+          if (newState.userData.userType === "teacher") {
+            nextStep = "teacher-details";
+          } else if (newState.userData.userType === "student") {
+            nextStep = "student-details";
+          } else if (newState.userData.userType === "parent") {
+            nextStep = "parent-details";
+          } else {
+            nextStep = "complete";
+          }
+          break;
+        case "student-details":
+          nextStep = "complete";
+          break;
+        case "parent-details":
+          nextStep = "complete";
           break;
         case "teacher-details":
+          nextStep = "teacher-qualifications";
+          break;
+        case "teacher-qualifications":
+          nextStep = "teacher-preferences";
+          break;
+        case "teacher-preferences":
           nextStep = "complete";
           break;
       }
@@ -105,7 +259,7 @@ export default function OnboardingPage() {
           .from("profiles")
           .insert({
             id: user.id,
-            full_name: newState.userData.fullName,
+            full_name: newState.userData.fullName || `${newState.userData.firstName} ${newState.userData.lastName}`,
             email: user.email,
             phone: newState.userData.phone,
             user_type: newState.userData.userType,
@@ -115,6 +269,32 @@ export default function OnboardingPage() {
           .single();
 
         if (profileError) throw profileError;
+
+        // If user is a student, store grade info
+        if (newState.userData.userType === "student" && profileData) {
+          const { error: studentError } = await supabase
+            .from("student_profiles")
+            .insert({
+              user_id: profileData.id,
+              grade: newState.userData.grade,
+              interests: newState.userData.interests || [],
+            });
+
+          if (studentError) throw studentError;
+        }
+
+        // If user is a parent, store children info
+        if (newState.userData.userType === "parent" && profileData) {
+          const { error: parentError } = await supabase
+            .from("parent_profiles")
+            .insert({
+              user_id: profileData.id,
+              children_count: parseInt(newState.userData.childrenCount || "1"),
+              children_grades: newState.userData.childrenGrades || [],
+            });
+
+          if (parentError) throw parentError;
+        }
 
         // If user is a teacher, create teacher profile
         if (
@@ -189,42 +369,152 @@ export default function OnboardingPage() {
     }
   };
 
+  // Get current step index and calculate progress
+  const currentStepIndex = activeSteps.findIndex(step => step.id === state.currentStep);
+  // If step not found in active steps (e.g., when switching from teacher to student/parent),
+  // default to the profile-details step
+  const safeCurrentStepIndex = currentStepIndex === -1 
+    ? activeSteps.findIndex(step => step.id === "profile-details") 
+    : currentStepIndex;
+  
+  const progressPercentage = activeSteps.length > 1 
+    ? Math.round((safeCurrentStepIndex / (activeSteps.length - 1)) * 100) 
+    : 0;
+
   if (!user) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
-        {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{error}</div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Progress steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between relative">
+              {activeSteps.map((step, index) => (
+                <div 
+                  key={step.id} 
+                  className="flex flex-col items-center z-10"
+                >
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300
+                    ${index <= safeCurrentStepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                  `}>
+                    <step.icon className="w-5 h-5" />
+                  </div>
+                  <span className={`
+                    mt-2 text-xs transition-colors duration-300
+                    ${index <= safeCurrentStepIndex ? 'text-primary font-medium' : 'text-muted-foreground'}
+                  `}>
+                    {step.title}
+                  </span>
+                </div>
+              ))}
+              
+              {/* Progress connector line */}
+              <div className="absolute left-0 right-0 top-5 h-0.5 bg-muted -z-10">
+                <div 
+                  className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
-        )}
 
-        {state.currentStep === "user-type" && (
-          <UserTypeStep
-            initialData={state.userData}
-            onNext={handleNext}
-            isLoading={isLoading}
-          />
-        )}
+          {/* Current step indicator below each step */}
+          <div className="mb-6 text-center">
+            <p className="text-sm font-medium">
+              Step {safeCurrentStepIndex + 1} of {activeSteps.length}: <span className="text-primary">{activeSteps[safeCurrentStepIndex].title}</span>
+            </p>
+            <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+          </div>
 
-        {state.currentStep === "profile-details" && (
-          <ProfileDetailsStep
-            initialData={state.userData}
-            onNext={handleNext}
-            isLoading={isLoading}
-          />
-        )}
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 rounded-md bg-destructive/10 p-4">
+              <div className="text-sm text-destructive">{error}</div>
+            </div>
+          )}
+          
+          {/* Step content */}
+          <Card>
+            {state.currentStep === "user-type" && (
+              <UserTypeStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={false}
+                onBack={handleBack}
+              />
+            )}
 
-        {state.currentStep === "teacher-details" && (
-          <TeacherDetailsStep
-            initialData={state.userData}
-            onNext={handleNext}
-            isLoading={isLoading}
-          />
-        )}
+            {state.currentStep === "profile-details" && (
+              <ProfileDetailsStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "student-details" && (
+              <StudentDetailsStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "parent-details" && (
+              <ParentDetailsStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "teacher-details" && (
+              <TeacherDetailsStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "teacher-qualifications" && (
+              <TeacherQualificationsStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "teacher-preferences" && (
+              <TeacherPreferencesStep
+                initialData={state.userData}
+                onNext={handleNext}
+                isLoading={isLoading}
+                showBackButton={true}
+                onBack={handleBack}
+              />
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );

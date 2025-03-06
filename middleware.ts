@@ -30,13 +30,18 @@ export async function middleware(req: NextRequest) {
     // Auth routes that should redirect to dashboard if logged in
     const authRoutes = ["/auth/login", "/auth/signup", "/login"];
 
+    // Special routes with custom handling
+    const onboardingRoute = "/onboarding";
+
     const isProtectedRoute = protectedRoutes.some((route) =>
       req.nextUrl.pathname.startsWith(route)
     );
     const isAuthRoute = authRoutes.some((route) =>
       req.nextUrl.pathname.startsWith(route)
     );
+    const isOnboardingRoute = req.nextUrl.pathname.startsWith(onboardingRoute);
 
+    // Force a user to login if trying to access a protected route
     if (!session && isProtectedRoute) {
       // Store the original URL to redirect back after login
       const redirectUrl = new URL("/auth/login", req.url);
@@ -44,8 +49,42 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    if (session && isAuthRoute) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+    // If logged in, check if user has a profile
+    if (session) {
+      // Check if user needs onboarding from metadata
+      const needsOnboarding = session.user.user_metadata?.needs_onboarding === true;
+      
+      // Check if user has a profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", session.user.id)
+        .single();
+
+      // If no profile found and not already on onboarding page, redirect to onboarding
+      if ((needsOnboarding || !profile) && !isOnboardingRoute) {
+        console.log("User needs onboarding, redirecting to onboarding");
+        return NextResponse.redirect(new URL("/onboarding", req.url));
+      }
+
+      // If has profile and trying to access auth routes, redirect to dashboard
+      if (profile && isAuthRoute) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+
+      // If has profile and trying to access onboarding, redirect to dashboard
+      if (profile && !needsOnboarding && isOnboardingRoute) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+
+    // Handle onboarding route - allow access even if logged in
+    // Specific checks for profiles are handled above
+    if (isOnboardingRoute && !session) {
+      // If trying to access onboarding but not logged in, redirect to login
+      const redirectUrl = new URL("/auth/login", req.url);
+      redirectUrl.searchParams.set("redirectTo", "/onboarding");
+      return NextResponse.redirect(redirectUrl);
     }
 
     return res;
@@ -63,9 +102,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - public folder files (images, etc.)
      * - auth callback route
      */
-    "/((?!_next/static|_next/image|favicon.ico|public/|auth/callback).*)",
+    "/((?!_next/static|_next/image|favicon.ico|default-avatar.png|images/|avatars/|public/|auth/callback).*)",
   ],
 };

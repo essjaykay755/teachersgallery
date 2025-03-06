@@ -18,7 +18,7 @@ const mockUser = {
   name: "John Doe",
   email: "john@example.com",
   phone: "+91 98765 43210",
-  avatar: "/avatar.jpg",
+  avatar: "/default-avatar.png",
   listingActive: true,
   featuredUntil: "2024-05-01", // null if not featured
 }

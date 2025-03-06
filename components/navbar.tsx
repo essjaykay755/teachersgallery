@@ -432,18 +432,18 @@ export default function Navbar() {
                 >
                   {user ? (
                     <img
-                      src={profile?.avatar_url || "/avatar.jpg"}
+                      src={profile?.avatar_url || "/default-avatar.png"}
                       alt="User avatar"
                       className="h-full w-full object-cover"
                       onError={(e) => {
                         // Handle image loading errors
                         console.error("Avatar image failed to load");
-                        e.currentTarget.src = "/avatar.jpg";
+                        e.currentTarget.src = "/default-avatar.png";
                       }}
                     />
                   ) : (
                     <img
-                      src="/avatar.jpg"
+                      src="/default-avatar.png"
                       alt="User avatar"
                       className="h-full w-full object-cover opacity-80 hover:opacity-100"
                     />

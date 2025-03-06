@@ -140,7 +140,7 @@ export default function Messages() {
                   <div className="relative flex-shrink-0">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100">
                       <Image
-                        src={selectedConversation.avatar}
+                        src="/default-avatar.png"
                         alt={selectedConversation.name}
                         width={40}
                         height={40}
@@ -213,7 +213,7 @@ export default function Messages() {
                 <div className="flex gap-3 max-w-[80%]">
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
                     <Image
-                      src={selectedConversation.avatar}
+                      src="/default-avatar.png"
                       alt={selectedConversation.name}
                       width={32}
                       height={32}
@@ -234,7 +234,7 @@ export default function Messages() {
                 <div className="flex gap-3 max-w-[80%] ml-auto flex-row-reverse">
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
                     <Image
-                      src="/avatar.jpg"
+                      src="/default-avatar.png"
                       alt="You"
                       width={32}
                       height={32}

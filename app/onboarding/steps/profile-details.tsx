@@ -1,24 +1,34 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import type { OnboardingState } from "@/lib/types";
 import { uploadAvatar } from "@/lib/upload";
 import { useAuth } from "@/lib/contexts/auth";
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   initialData: OnboardingState["userData"];
   onNext: (data: Partial<OnboardingState["userData"]>) => void;
   isLoading: boolean;
+  showBackButton: boolean;
+  onBack: () => void;
 };
 
 export default function ProfileDetailsStep({
   initialData,
   onNext,
   isLoading,
+  showBackButton,
+  onBack,
 }: Props) {
   const { user } = useAuth();
-  const [fullName, setFullName] = useState(initialData.fullName || "");
+  const [firstName, setFirstName] = useState(initialData.firstName || "");
+  const [lastName, setLastName] = useState(initialData.lastName || "");
+  const [email, setEmail] = useState(initialData.email || user?.email || "");
   const [phone, setPhone] = useState(initialData.phone || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
@@ -27,6 +37,19 @@ export default function ProfileDetailsStep({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Populate fullName from firstName and lastName if they're already set
+  useEffect(() => {
+    if (initialData.fullName && !firstName && !lastName) {
+      const nameParts = initialData.fullName.split(" ");
+      if (nameParts.length >= 2) {
+        setFirstName(nameParts[0]);
+        setLastName(nameParts.slice(1).join(" "));
+      } else if (nameParts.length === 1) {
+        setFirstName(nameParts[0]);
+      }
+    }
+  }, [initialData.fullName, firstName, lastName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +114,14 @@ export default function ProfileDetailsStep({
       setIsUploading(false);
     }
 
+    // Combine first and last name into fullName
+    const fullName = `${firstName} ${lastName}`.trim();
+
     onNext({
+      firstName,
+      lastName,
       fullName,
+      email,
       phone,
       avatarUrl,
     });
@@ -123,103 +152,140 @@ export default function ProfileDetailsStep({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Your Profile</h2>
-        <p className="mt-2 text-sm text-gray-600">
+    <>
+      <CardHeader>
+        <CardTitle>Your Profile</CardTitle>
+        <CardDescription>
           Tell us a bit about yourself
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label
-            htmlFor="fullName"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="fullName"
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
-        </div>
+      <CardContent>
+        <form id="profile-details-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  type="text"
+                  id="firstName"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Your first name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  type="text"
+                  id="lastName"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Your last name"
+                />
+              </div>
+            </div>
 
-        <div>
-          <label
-            htmlFor="phone"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Profile Picture
-          </label>
-          <div className="mt-1 flex items-center space-x-5">
-            <div className="flex-shrink-0">
-              {avatarPreview ? (
-                <div className="relative h-16 w-16 rounded-full overflow-hidden">
-                  <Image
-                    src={avatarPreview}
-                    alt="Avatar preview"
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveAvatar}
-                    className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-400 text-xl">?</span>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                type="email"
+                id="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your email address"
+                disabled={!!user?.email}
+              />
+              {user?.email && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email address is linked to your account and cannot be changed here.
+                </p>
               )}
             </div>
-            <div className="flex-grow">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Your phone number (optional)"
               />
-              {uploadError && (
-                <p className="mt-1 text-sm text-red-600">{uploadError}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                JPG, PNG or GIF. Max size 2MB.
-              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Profile Picture</Label>
+              <div className="flex items-center gap-5">
+                <div className="flex-shrink-0">
+                  {avatarPreview ? (
+                    <div className="relative h-16 w-16 rounded-full overflow-hidden border">
+                      <Image
+                        src={avatarPreview}
+                        alt="Avatar preview"
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground text-xl">?</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-grow">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                    aria-describedby="file-description"
+                  />
+                  <p id="file-description" className="mt-1 text-xs text-muted-foreground">
+                    JPG, PNG or GIF. Max size 2MB.
+                  </p>
+                  {uploadError && (
+                    <p className="mt-1 text-sm text-destructive">{uploadError}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </form>
+      </CardContent>
 
-        <button
-          type="submit"
-          disabled={isLoading || isUploading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading || isUploading ? "Processing..." : "Continue"}
-        </button>
-      </form>
-    </div>
+      <CardFooter className="flex justify-between">
+        {showBackButton && (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={isLoading || isUploading}
+          >
+            Back
+          </Button>
+        )}
+        <div className={showBackButton ? "" : "ml-auto"}>
+          <Button
+            type="submit"
+            form="profile-details-form"
+            disabled={isLoading || isUploading || !firstName || !lastName || !email}
+          >
+            {isLoading || isUploading ? "Processing..." : "Continue"}
+          </Button>
+        </div>
+      </CardFooter>
+    </>
   );
 }
