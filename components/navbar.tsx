@@ -503,26 +503,8 @@ export default function Navbar() {
                           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                         >
                           <User className="h-4 w-4" />
-                          Dashboard
+                          Profile
                         </button>
-                        <button
-                          onClick={() => handleNavigation("/account/settings")}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          <User className="h-4 w-4" />
-                          Account Settings
-                        </button>
-                        {profile?.user_type === "teacher" && (
-                          <button
-                            onClick={() =>
-                              handleNavigation("/settings/teacher-profile")
-                            }
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                          >
-                            <User className="h-4 w-4" />
-                            Teacher Profile
-                          </button>
-                        )}
                       </>
                     )}
 

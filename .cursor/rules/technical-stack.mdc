@@ -1,0 +1,34 @@
+---
+description: Technical Stack
+globs: 
+alwaysApply: true
+---
+# Teachers Gallery Tech Stack (Short Version)
+
+- **Frontend**: Next.js (React, server-side rendering)  
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)  
+- **Styling**: CSS Modules or Tailwind CSS  
+- **Deployment**: Vercel  
+
+**Database**:  
+- `teachers`: `id` (uuid), `user_id` (uuid), `name` (text), `bio` (text), `subjects` (text), `experience` (text), `profile_picture` (text), `created_at` (timestamp), `updated_at` (timestamp)  
+- `users` (Supabase Auth): `id` (uuid), `email` (text), `password` (hashed), `role` (text in `user_metadata`)  
+
+**RLS Policies**:  
+- `SELECT`: Public (`true`)  
+- `INSERT`: Authenticated (`auth.uid() is not null`)  
+- `UPDATE`: Owner or Admin (`(user_id = auth.uid()) OR (auth.user_metadata->>'role' = 'admin')`)  
+- `DELETE`: Admin (`auth.user_metadata->>'role' = 'admin'`)  
+
+**Key Features**:  
+- Public: Home (`/`), Teacher Profile (`/teachers/[id]`)  
+- Auth: Login (`/login`), Sign Up (`/signup`)  
+- Teacher: Profile (`/profile`), Edit Profile (`/profile/edit`)  
+- Admin: Dashboard (`/admin`)  
+
+**Components**: `TeacherCard`, `TeacherProfile`, `SearchBar`, `AuthForm`, `ProfileForm`, `Navbar`  
+
+**Notes**:  
+- Uses Supabase Auth for login/signup.  
+- Images stored in Supabase Storage.  
+- Environment vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.  

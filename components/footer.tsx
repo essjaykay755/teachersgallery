@@ -23,9 +23,9 @@ export default function Footer() {
               <Image
                 src="/logo_dark.png"
                 alt="TeachersGallery"
-                width={180}
-                height={40}
-                className="h-8 w-auto"
+                width={240}
+                height={60}
+                className="h-12 w-auto"
               />
             </Link>
             <p className="text-gray-600 text-sm">
