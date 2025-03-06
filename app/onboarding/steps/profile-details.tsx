@@ -37,6 +37,9 @@ export default function ProfileDetailsStep({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Check if user logged in via Google (will have fixed email)
+  const isGoogleLogin = !!user?.app_metadata?.provider && user.app_metadata.provider.includes("google");
 
   // Populate fullName from firstName and lastName if they're already set
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function ProfileDetailsStep({
         console.log("Starting avatar upload...");
         // Use a temporary ID if user is not available
         const tempId = "temp-" + Date.now();
-        const result = await uploadAvatar(avatarFile, tempId);
+        const result = await uploadAvatar(avatarFile, user?.id || tempId);
 
         if ("error" in result) {
           console.error("Avatar upload returned error:", result.error);
@@ -197,11 +200,11 @@ export default function ProfileDetailsStep({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email address"
-                disabled={!!user?.email}
+                disabled={isGoogleLogin}
               />
-              {user?.email && (
+              {isGoogleLogin && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Email address is linked to your account and cannot be changed here.
+                  Email address is linked to your Google account and cannot be changed.
                 </p>
               )}
             </div>

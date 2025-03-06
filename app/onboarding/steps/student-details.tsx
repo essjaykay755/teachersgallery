@@ -31,6 +31,15 @@ export default function StudentDetailsStep({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Student details form submitted", { grade, interests });
+    
+    // Validate form data
+    if (!grade) {
+      console.error("Grade is required");
+      return;
+    }
+    
+    // Submit the form data
     onNext({
       grade,
       interests,
@@ -137,6 +146,14 @@ export default function StudentDetailsStep({
             type="submit"
             form="student-details-form"
             disabled={isLoading || !grade}
+            onClick={(e) => {
+              if (!grade) {
+                e.preventDefault();
+                console.error("Grade is required");
+                return;
+              }
+              console.log("Continue button clicked", { isLoading, grade });
+            }}
           >
             {isLoading ? "Processing..." : "Continue"}
           </Button>

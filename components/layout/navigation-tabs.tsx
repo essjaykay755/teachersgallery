@@ -15,6 +15,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function NavigationTabs() {
   const { user, profile } = useAuth();
@@ -69,16 +70,24 @@ export default function NavigationTabs() {
         {/* User Profile */}
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full overflow-hidden">
-              <img
-                src={profile?.avatar_url || "/default-avatar.png"}
-                alt="User avatar"
-                className="h-full w-full object-cover"
-              />
+            <div className="flex-shrink-0">
+              <Avatar size="lg" className="!h-12 !w-12 rounded-full">
+                <AvatarImage
+                  src={profile?.avatar_url}
+                  alt={profile?.full_name || "User avatar"}
+                  onError={(e) => {
+                    console.error("Avatar image failed to load");
+                  }}
+                  className="object-cover"
+                />
+                <AvatarFallback>
+                  <User className="h-6 w-6" />
+                </AvatarFallback>
+              </Avatar>
             </div>
-            <div>
-              <p className="font-medium text-gray-900">{profile?.full_name || "User"}</p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 truncate">{profile?.full_name || "User"}</p>
+              <p className="text-sm text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
         </div>

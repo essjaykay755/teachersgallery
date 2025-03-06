@@ -6,8 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/auth";
 import { Menu, Transition } from "@headlessui/react";
 import { signOut } from "@/lib/auth";
-import { Menu as MenuIcon, X } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { Menu as MenuIcon, X, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Navbar() {
   const { user, profile } = useAuth();
@@ -53,11 +53,15 @@ export default function Navbar() {
             {user ? (
               <Menu as="div" className="ml-3 relative">
                 <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                  <Avatar
-                    src={profile?.avatar_url}
-                    alt={profile?.full_name || "User avatar"}
-                    size="sm"
-                  />
+                  <Avatar size="sm">
+                    <AvatarImage 
+                      src={profile?.avatar_url} 
+                      alt={profile?.full_name || "User avatar"} 
+                    />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
                 </Menu.Button>
                 <Transition
                   as={Fragment}
@@ -68,12 +72,35 @@ export default function Navbar() {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <Menu.Items className="absolute right-0 z-10 mt-2 w-64 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <Menu.Item>
                       {({ active }) => (
-                        <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                          <p className="font-medium">{profile?.full_name}</p>
-                          <p className="text-gray-500">{user.email}</p>
+                        <div className="px-4 py-2 text-sm border-b flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <Avatar size="sm" className="!min-w-8 !min-h-8">
+                              <AvatarImage 
+                                src={profile?.avatar_url} 
+                                alt={profile?.full_name || "User avatar"} 
+                              />
+                              <AvatarFallback>
+                                <User className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-700">{profile?.full_name || "User"}</p>
+                            <div className="overflow-hidden relative email-container group">
+                              <p 
+                                className="text-gray-500 truncate group-hover:animate-marquee whitespace-nowrap"
+                                style={{
+                                  maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
+                                  WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)'
+                                }}
+                              >
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </Menu.Item>

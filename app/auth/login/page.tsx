@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Mail } from "lucide-react";
@@ -40,6 +40,22 @@ export default function LoginPage() {
     authLoading
   });
 
+  // Use useEffect for redirects to avoid updating during render
+  useEffect(() => {
+    if (!authLoading) {
+      // If user is already authenticated and has a profile, redirect to dashboard
+      if (user && profile) {
+        console.log("User has profile, redirecting to dashboard");
+        router.replace("/dashboard");
+      }
+      // If user is authenticated but doesn't have a profile, redirect to onboarding
+      else if (user && !profile) {
+        console.log("User has no profile, redirecting to onboarding");
+        router.replace("/onboarding");
+      }
+    }
+  }, [user, profile, authLoading, router]);
+
   // Don't redirect while still loading
   if (authLoading) {
     console.log("Auth still loading, showing loading state");
@@ -53,18 +69,16 @@ export default function LoginPage() {
     );
   }
 
-  // If user is already authenticated and has a profile, redirect to dashboard
-  if (user && profile) {
-    console.log("User has profile, redirecting to dashboard");
-    router.replace("/dashboard");
-    return null;
-  }
-
-  // If user is authenticated but doesn't have a profile, redirect to onboarding
-  if (user && !profile) {
-    console.log("User has no profile, redirecting to onboarding");
-    router.replace("/onboarding");
-    return null;
+  // If we're going to be redirected, show loading
+  if ((user && profile) || (user && !profile)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

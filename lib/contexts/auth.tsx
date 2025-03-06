@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const avatarUrl = data.avatar_url?.trim();
       const profile = {
         ...data,
-        avatar_url: avatarUrl && avatarUrl !== "" ? avatarUrl : "@default-avatar.png"
+        avatar_url: avatarUrl && avatarUrl !== "" ? avatarUrl : "/default-avatar.png"
       };
       
       console.log(`AuthProvider: Profile found for user ${userId}, avatar:`, profile.avatar_url);

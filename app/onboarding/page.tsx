@@ -11,6 +11,7 @@ import StudentDetailsStep from "./steps/student-details";
 import ParentDetailsStep from "./steps/parent-details";
 import TeacherQualificationsStep from "./steps/teacher-qualifications";
 import TeacherPreferencesStep from "./steps/teacher-preferences";
+import CompletionStep from "./steps/completion-step";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { 
@@ -21,7 +22,8 @@ import {
   GraduationCap, 
   School,
   BookOpen,
-  UserCog
+  UserCog,
+  Flag
 } from "lucide-react";
 
 const INITIAL_STATE: OnboardingState = {
@@ -50,6 +52,11 @@ const TEACHER_STEPS = [
   { id: "teacher-preferences", title: "Preferences", icon: CheckCircle2 },
 ];
 
+// Completion step
+const COMPLETION_STEP = [
+  { id: "complete", title: "Complete", icon: Flag },
+];
+
 export default function OnboardingPage() {
   const { user, profile, isNewUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -57,6 +64,7 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSteps, setActiveSteps] = useState(() => [...BASE_STEPS]);
+  const [profileCreated, setProfileCreated] = useState(false);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -113,13 +121,22 @@ export default function OnboardingPage() {
       steps = [...steps, ...PARENT_STEPS];
     }
     
+    // Add completion step if user has reached the final step or is going to
+    if (state.currentStep === "complete" || 
+        (state.userData.userType === "student" && state.currentStep === "student-details") ||
+        (state.userData.userType === "parent" && state.currentStep === "parent-details") ||
+        (state.userData.userType === "teacher" && state.currentStep === "teacher-preferences")) {
+      steps = [...steps, ...COMPLETION_STEP];
+    }
+    
     setActiveSteps(steps);
     
     // Important: Log the current state for debugging
     console.log("Steps updated:", { 
       steps, 
       userType: state.userData.userType,
-      currentStep: state.currentStep 
+      currentStep: state.currentStep,
+      includesCompletion: steps.some(step => step.id === "complete")
     });
   }, [state.userData.userType, state.currentStep]);
 
@@ -169,7 +186,7 @@ export default function OnboardingPage() {
         previousStep = "teacher-qualifications";
         break;
       default:
-        return; // No back for first step
+        return; // No back for first step or completion step
     }
     
     // When going back to user type, preserve the current selection
@@ -242,7 +259,7 @@ export default function OnboardingPage() {
       }
 
       // If this is the final step, save everything to the database
-      if (nextStep === "complete" && user) {
+      if (nextStep === "complete" && user && !profileCreated) {
         // If this is a teacher registration, ensure the avatars bucket exists
         if (newState.userData.userType === "teacher") {
           const bucketExists = await ensureAvatarsBucket();
@@ -260,7 +277,7 @@ export default function OnboardingPage() {
           .insert({
             id: user.id,
             full_name: newState.userData.fullName || `${newState.userData.firstName} ${newState.userData.lastName}`,
-            email: user.email,
+            email: user.email || newState.userData.email, // Use Google email or direct registration email
             phone: newState.userData.phone,
             user_type: newState.userData.userType,
             avatar_url: newState.userData.avatarUrl,
@@ -272,28 +289,44 @@ export default function OnboardingPage() {
 
         // If user is a student, store grade info
         if (newState.userData.userType === "student" && profileData) {
-          const { error: studentError } = await supabase
-            .from("student_profiles")
-            .insert({
-              user_id: profileData.id,
-              grade: newState.userData.grade,
-              interests: newState.userData.interests || [],
-            });
+          try {
+            const { error: studentError } = await supabase
+              .from("student_profiles")
+              .insert({
+                user_id: profileData.id,
+                grade: newState.userData.grade,
+                interests: newState.userData.interests || [],
+              });
 
-          if (studentError) throw studentError;
+            if (studentError) {
+              console.error("Failed to create student profile:", studentError);
+              // Continue anyway, since the base profile was created
+            }
+          } catch (err) {
+            console.error("Error creating student profile:", err);
+            // Continue anyway, since the base profile was created
+          }
         }
 
         // If user is a parent, store children info
         if (newState.userData.userType === "parent" && profileData) {
-          const { error: parentError } = await supabase
-            .from("parent_profiles")
-            .insert({
-              user_id: profileData.id,
-              children_count: parseInt(newState.userData.childrenCount || "1"),
-              children_grades: newState.userData.childrenGrades || [],
-            });
+          try {
+            const { error: parentError } = await supabase
+              .from("parent_profiles")
+              .insert({
+                user_id: profileData.id,
+                children_count: parseInt(newState.userData.childrenCount || "1"),
+                children_grades: newState.userData.childrenGrades || [],
+              });
 
-          if (parentError) throw parentError;
+            if (parentError) {
+              console.error("Failed to create parent profile:", parentError);
+              // Continue anyway, since the base profile was created
+            }
+          } catch (err) {
+            console.error("Error creating parent profile:", err);
+            // Continue anyway, since the base profile was created
+          }
         }
 
         // If user is a teacher, create teacher profile
@@ -347,21 +380,39 @@ export default function OnboardingPage() {
           }
         }
 
+        // Mark profile as created to prevent duplicate creation
+        setProfileCreated(true);
+
         // Trigger a revalidation of the auth context by refreshing the session
         const { error: refreshError } = await supabase.auth.refreshSession();
         if (refreshError) throw refreshError;
 
-        // Wait for a short delay to ensure the auth context is updated
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Add more robust logging to track the completion process
+        console.log("Profile creation complete, moving to completion step", {
+          userType: newState.userData.userType,
+          profileCreated,
+          nextStep
+        });
 
-        // Redirect to dashboard after successful profile creation
-        router.refresh(); // Refresh the router to update auth context
-        router.replace("/dashboard");
-        return;
+        // Wait for a short delay to ensure the auth context is updated
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Increased from 500ms to 1000ms
+
+        // Force a state update before router refresh to ensure UI updates
+        setState({ ...newState, currentStep: nextStep });
+        
+        // Update the router to refresh auth context but don't redirect yet
+        router.refresh();
       }
 
-      // Update state with next step
-      setState({ ...newState, currentStep: nextStep });
+      // Update state with next step (moved this outside the if block to ensure it always executes)
+      setState((prevState) => {
+        console.log("Updating state to next step:", { 
+          current: prevState.currentStep, 
+          next: nextStep,
+          isComplete: nextStep === "complete"
+        });
+        return { ...newState, currentStep: nextStep };
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -389,51 +440,56 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="max-w-2xl mx-auto">
-          {/* Progress steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between relative">
-              {activeSteps.map((step, index) => (
-                <div 
-                  key={step.id} 
-                  className="flex flex-col items-center z-10"
-                >
-                  <div className={`
-                    w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300
-                    ${index <= safeCurrentStepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
-                  `}>
-                    <step.icon className="w-5 h-5" />
+          {/* Only show progress steps if not on completion step */}
+          {state.currentStep !== "complete" && (
+            <>
+              {/* Progress steps */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between relative">
+                  {activeSteps.map((step, index) => (
+                    <div 
+                      key={step.id} 
+                      className="flex flex-col items-center z-10"
+                    >
+                      <div className={`
+                        w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300
+                        ${index <= safeCurrentStepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                      `}>
+                        <step.icon className="w-5 h-5" />
+                      </div>
+                      <span className={`
+                        mt-2 text-xs transition-colors duration-300
+                        ${index <= safeCurrentStepIndex ? 'text-primary font-medium' : 'text-muted-foreground'}
+                      `}>
+                        {step.title}
+                      </span>
+                    </div>
+                  ))}
+                  
+                  {/* Progress connector line */}
+                  <div className="absolute left-0 right-0 top-5 h-0.5 bg-muted -z-10">
+                    <div 
+                      className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
                   </div>
-                  <span className={`
-                    mt-2 text-xs transition-colors duration-300
-                    ${index <= safeCurrentStepIndex ? 'text-primary font-medium' : 'text-muted-foreground'}
-                  `}>
-                    {step.title}
-                  </span>
                 </div>
-              ))}
-              
-              {/* Progress connector line */}
-              <div className="absolute left-0 right-0 top-5 h-0.5 bg-muted -z-10">
-                <div 
-                  className="h-full bg-primary transition-all duration-500 ease-in-out" 
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
               </div>
-            </div>
-          </div>
 
-          {/* Current step indicator below each step */}
-          <div className="mb-6 text-center">
-            <p className="text-sm font-medium">
-              Step {safeCurrentStepIndex + 1} of {activeSteps.length}: <span className="text-primary">{activeSteps[safeCurrentStepIndex].title}</span>
-            </p>
-            <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
-              <div 
-                className="h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-          </div>
+              {/* Current step indicator below each step */}
+              <div className="mb-6 text-center">
+                <p className="text-sm font-medium">
+                  Step {safeCurrentStepIndex + 1} of {activeSteps.length}: <span className="text-primary">{activeSteps[safeCurrentStepIndex].title}</span>
+                </p>
+                <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Error message */}
           {error && (
@@ -511,6 +567,13 @@ export default function OnboardingPage() {
                 isLoading={isLoading}
                 showBackButton={true}
                 onBack={handleBack}
+              />
+            )}
+
+            {state.currentStep === "complete" && (
+              <CompletionStep 
+                key={`completion-${profileCreated ? 'created' : 'pending'}-${Date.now()}`} 
+                userType={state.userData.userType || "user"} 
               />
             )}
           </Card>

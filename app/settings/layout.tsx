@@ -33,6 +33,12 @@ export default function SettingsLayout({
   // Navigation links for settings
   const navItems = [
     { 
+      title: "Profile", 
+      href: "/settings/profile",
+      active: pathname === "/settings/profile",
+      show: true
+    },
+    { 
       title: "Teacher Profile", 
       href: "/settings/teacher-profile",
       active: pathname === "/settings/teacher-profile",
@@ -43,6 +49,12 @@ export default function SettingsLayout({
       title: "Preferences", 
       href: "/settings/preferences",
       active: pathname === "/settings/preferences",
+      show: true
+    },
+    { 
+      title: "Notifications", 
+      href: "/settings/notifications",
+      active: pathname === "/settings/notifications",
       show: true
     }
   ];
