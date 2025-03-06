@@ -452,10 +452,10 @@ export default function Navbar() {
                 </button>
 
                 {showUserMenu && user && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50">
                     <div className="px-4 py-2 text-sm text-gray-700 border-b">
                       <p className="font-medium">{profile?.full_name}</p>
-                      <p className="text-gray-500">{user.email}</p>
+                      <p className="text-gray-500 truncate">{user.email}</p>
                       {profileIsTemporary && (
                         <p className="text-amber-600 text-xs mt-1">
                           Profile incomplete
@@ -467,14 +467,14 @@ export default function Navbar() {
                       <>
                         <button
                           onClick={() => handleNavigation("/account/settings")}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left whitespace-nowrap"
                         >
-                          <User className="h-4 w-4" />
+                          <User className="h-4 w-4 flex-shrink-0" />
                           Complete Profile
                         </button>
                         <button
                           onClick={handleRefreshProfile}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-gray-100 w-full text-left"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-gray-100 w-full text-left whitespace-nowrap"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -486,7 +486,7 @@ export default function Navbar() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="h-4 w-4"
+                            className="h-4 w-4 flex-shrink-0"
                           >
                             <path d="M21 2v6h-6"></path>
                             <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
@@ -500,19 +500,19 @@ export default function Navbar() {
                       <>
                         <button
                           onClick={() => handleNavigation("/dashboard")}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left whitespace-nowrap"
                         >
-                          <User className="h-4 w-4" />
-                          Profile
+                          <User className="h-4 w-4 flex-shrink-0" />
+                          Manage Your Account
                         </button>
                       </>
                     )}
 
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left whitespace-nowrap"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-4 w-4 flex-shrink-0" />
                       Logout
                     </button>
                   </div>

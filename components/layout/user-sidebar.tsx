@@ -13,7 +13,8 @@ import {
   LogOut,
   LayoutDashboard,
   Sliders,
-  LucideIcon
+  LucideIcon,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -61,6 +62,13 @@ const getSidebarLinks = (userType: string | undefined): SidebarItem[] => {
       title: "Teacher Profile",
       href: "/teacher-profile",
       icon: GraduationCap,
+    });
+    
+    // Add students assigned link for teachers
+    links.push({
+      title: "Students Assigned",
+      href: "/assigned-students",
+      icon: Users,
     });
   }
 

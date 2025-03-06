@@ -8,7 +8,8 @@ import {
   Bell,
   LogOut,
   User,
-  GraduationCap
+  GraduationCap,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,13 @@ export default function NavigationTabs() {
       title: "Teacher Profile",
       href: "/teacher-profile",
       icon: GraduationCap,
+    });
+    
+    // Add students assigned option for teachers
+    navItems.push({
+      title: "Students Assigned",
+      href: "/assigned-students",
+      icon: Users,
     });
   }
   
