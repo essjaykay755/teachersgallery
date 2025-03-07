@@ -19,14 +19,16 @@ import {
   GraduationCap,
   School,
   AlertTriangle,
+  User,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/ui/star-rating";
 import TeacherExperienceEducation from "@/app/components/TeacherExperienceEducation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { TeacherProfile } from "@/lib/supabase";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // Update mock teacher data
 const mockTeacher = {
@@ -117,9 +119,9 @@ const mockTeacher = {
   ],
 };
 
-export default function TeacherProfile({ params }: { params: { id: string } }) {
-  // Access params.id directly but store it in a variable to avoid multiple accesses
-  const teacherId = params.id;
+export default function TeacherProfile() {
+  const params = useParams();
+  const teacherId = params?.id as string;
   
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
@@ -135,6 +137,13 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
     setIsClient(true);
 
     async function fetchTeacherProfile() {
+      // Make sure teacherId is a valid string
+      if (!teacherId || Array.isArray(teacherId)) {
+        console.error("Invalid teacher ID:", teacherId);
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -161,9 +170,7 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
       }
     }
 
-    if (teacherId) {
-      fetchTeacherProfile();
-    }
+    fetchTeacherProfile();
   }, [teacherId, supabase]);
 
   const totalExperience = useMemo(() => {
@@ -221,18 +228,18 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row items-start gap-6">
                 <div className="relative">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-100">
-                    <Image
+                  <Avatar size="xl">
+                    <AvatarImage
                       src={
                         teacher?.profiles?.avatar_url ||
                         `/avatars/avatar${mockTeacher.avatarIndex}.jpg`
                       }
                       alt={teacher?.profiles?.full_name || mockTeacher.name}
-                      fill
-                      sizes="(max-width: 640px) 96px, 128px"
-                      className="object-cover"
                     />
-                  </div>
+                    <AvatarFallback>
+                      <User className="h-12 w-12 text-gray-400" />
+                    </AvatarFallback>
+                  </Avatar>
                   <Button
                     variant="ghost"
                     size="icon"

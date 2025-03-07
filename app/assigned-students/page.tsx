@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Mail, MessageSquare } from "lucide-react";
+import { AvatarWithTypeIndicator } from "@/components/ui/avatar";
 
 // Mock student data
 const MOCK_STUDENTS = [
@@ -17,7 +18,8 @@ const MOCK_STUDENTS = [
     subject: "Mathematics",
     level: "High School",
     joined: "2023-11-12",
-    status: "Active"
+    status: "Active",
+    avatar: "/default-avatar.png"
   },
   {
     id: "2",
@@ -26,7 +28,8 @@ const MOCK_STUDENTS = [
     subject: "Physics",
     level: "College",
     joined: "2023-10-05",
-    status: "Active"
+    status: "Active",
+    avatar: "/default-avatar.png"
   },
   {
     id: "3",
@@ -35,7 +38,8 @@ const MOCK_STUDENTS = [
     subject: "Mathematics",
     level: "Middle School",
     joined: "2023-12-01",
-    status: "Inactive"
+    status: "Inactive",
+    avatar: "/default-avatar.png"
   },
   {
     id: "4",
@@ -44,7 +48,8 @@ const MOCK_STUDENTS = [
     subject: "Chemistry",
     level: "High School",
     joined: "2024-01-15",
-    status: "Active"
+    status: "Active",
+    avatar: "/default-avatar.png"
   },
   {
     id: "5",
@@ -53,7 +58,8 @@ const MOCK_STUDENTS = [
     subject: "Computer Science",
     level: "College",
     joined: "2024-02-08",
-    status: "Active"
+    status: "Active",
+    avatar: "/default-avatar.png"
   }
 ];
 
@@ -132,9 +138,17 @@ export default function AssignedStudentsPage() {
                   {filteredStudents.map((student) => (
                     <tr key={student.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-2">
-                        <div>
-                          <p className="font-medium">{student.name}</p>
-                          <p className="text-xs text-gray-500">{student.email}</p>
+                        <div className="flex items-center gap-3">
+                          <AvatarWithTypeIndicator
+                            userType="student"
+                            src={student.avatar}
+                            size="sm"
+                            alt={student.name}
+                          />
+                          <div>
+                            <p className="font-medium">{student.name}</p>
+                            <p className="text-xs text-gray-500">{student.email}</p>
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-2">{student.subject}</td>

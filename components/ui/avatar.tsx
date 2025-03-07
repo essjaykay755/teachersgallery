@@ -259,7 +259,7 @@ export function AvatarWithTypeIndicator({
   };
 
   return (
-    <div className="relative">
+    <div className="relative inline-flex">
       <Avatar size={size} className={className} {...props}>
         {src && (
           <AvatarImage
@@ -278,7 +278,7 @@ export function AvatarWithTypeIndicator({
       {/* Show the badge for all user types, including "unknown" */}
       {userType && (
         <div 
-          className={`absolute -bottom-1 -right-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white
+          className={`absolute -top-1 -left-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white z-10 pointer-events-none
             ${getTypeColor(userType)}
             ${size === 'sm' ? 'w-4 h-4 text-[8px]' : 
               size === 'md' ? 'w-5 h-5 text-[10px]' : 

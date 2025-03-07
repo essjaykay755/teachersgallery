@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Mail, MessageSquare, Calendar, Star, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { AvatarWithTypeIndicator } from "@/components/ui/avatar";
 
 // Mock teacher data
 const MOCK_TEACHERS = [
@@ -135,13 +136,12 @@ export default function AssignedTeachersPage() {
                 <Card key={teacher.id} className="overflow-hidden">
                   <div className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="h-16 w-16 rounded-full overflow-hidden flex-shrink-0">
-                        <img 
-                          src={teacher.avatar} 
-                          alt={teacher.name}
-                          className="h-full w-full object-cover" 
-                        />
-                      </div>
+                      <AvatarWithTypeIndicator
+                        userType="teacher"
+                        src={teacher.avatar}
+                        size="lg"
+                        alt={teacher.name}
+                      />
                       <div>
                         <h3 className="text-lg font-semibold">{teacher.name}</h3>
                         <p className="text-sm text-gray-500">{teacher.subject} Teacher</p>

@@ -61,7 +61,7 @@ export default function Navbar() {
           <div className="flex items-center">
             {user ? (
               <Menu as="div" className="ml-3 relative">
-                <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <Menu.Button className="relative flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer">
                   <AvatarWithTypeIndicator
                     size="sm"
                     src={profile?.avatar_url}

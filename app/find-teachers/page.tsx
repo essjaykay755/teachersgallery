@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { TeacherProfile } from "@/lib/supabase";
+import { useAuth } from "@/lib/contexts/auth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 export default function FindTeachersPage() {
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
@@ -135,11 +138,15 @@ export default function FindTeachersPage() {
               >
                 <div className="p-6">
                   <div className="flex items-center">
-                    <img
-                      className="h-12 w-12 rounded-full"
-                      src={teacher.profiles?.avatar_url || "/default-avatar.png"}
-                      alt=""
-                    />
+                    <Avatar size="md">
+                      <AvatarImage
+                        src={teacher.profiles?.avatar_url || "/default-avatar.png"}
+                        alt={teacher.profiles?.full_name || "Teacher"}
+                      />
+                      <AvatarFallback>
+                        <User className="h-6 w-6 text-gray-400" />
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">
                         {teacher.profiles?.full_name}

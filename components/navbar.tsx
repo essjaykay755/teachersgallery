@@ -39,6 +39,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/lib/contexts/auth";
 import { signOut } from "@/lib/auth";
+import { Avatar, AvatarImage, AvatarFallback, AvatarWithTypeIndicator } from "@/components/ui/avatar";
 
 // Mock locations data
 const locations = [
@@ -426,29 +427,30 @@ export default function Navbar() {
                 )}
               </div>
               <div className="relative" ref={userMenuRef}>
-                <button
-                  className="h-8 w-8 overflow-hidden rounded-full"
+                <div
+                  className="relative h-8 w-8 flex items-center justify-center cursor-pointer"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
                   {user ? (
-                    <img
-                      src={profile?.avatar_url || "/default-avatar.png"}
-                      alt="User avatar"
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        // Handle image loading errors
-                        console.error("Avatar image failed to load");
-                        e.currentTarget.src = "/default-avatar.png";
-                      }}
+                    <AvatarWithTypeIndicator
+                      size="sm"
+                      src={profile?.avatar_url}
+                      alt={profile?.full_name || "User avatar"}
+                      userType={profile?.user_type || "unknown"}
+                      fallback={<User className="h-4 w-4" />}
                     />
                   ) : (
-                    <img
-                      src="/default-avatar.png"
-                      alt="User avatar"
-                      className="h-full w-full object-cover opacity-80 hover:opacity-100"
-                    />
+                    <Avatar size="sm">
+                      <AvatarImage
+                        src="/default-avatar.png"
+                        alt="User avatar"
+                      />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
                   )}
-                </button>
+                </div>
 
                 {showUserMenu && user && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50">

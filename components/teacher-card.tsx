@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, CheckCircle, AlertCircle } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatedContainer, fadeIn } from "@/components/ui/animations";
 import { StarRating } from "@/components/ui/star-rating";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface TeacherCardProps {
   teacher?: {
@@ -106,17 +107,16 @@ const TeacherCard = React.memo(
 
         {/* Header Section */}
         <div className="flex items-start gap-4">
-          <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow flex-shrink-0">
-            {mounted && (
-              <Image
+          <div className="relative w-20 h-20 flex-shrink-0">
+            <Avatar size="lg" className="w-full h-full">
+              <AvatarImage
                 src={`/avatars/avatar${(teacher.avatarIndex % 8) + 1}.jpg`}
                 alt={teacher.name}
-                fill
-                sizes="(max-width: 768px) 80px, 80px"
-                className="object-cover"
-                priority={true}
               />
-            )}
+              <AvatarFallback>
+                <User className="h-8 w-8 text-gray-400" />
+              </AvatarFallback>
+            </Avatar>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1.5">

@@ -17,6 +17,8 @@ import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatedContainer, slideRight } from "@/components/ui/animations";
+import { AvatarWithTypeIndicator } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/contexts/auth";
 
 // Mock data for messages
 const conversations = [
@@ -28,6 +30,7 @@ const conversations = [
     time: "2m ago",
     unread: 2,
     online: true,
+    userType: "teacher"
   },
   {
     id: 2,
@@ -37,6 +40,7 @@ const conversations = [
     time: "1h ago",
     unread: 0,
     online: false,
+    userType: "teacher"
   },
   {
     id: 3,
@@ -46,11 +50,13 @@ const conversations = [
     time: "2h ago",
     unread: 1,
     online: true,
+    userType: "student"
   },
   // Add more conversations as needed
 ];
 
 export default function Messages() {
+  const { user, profile } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState(
     conversations[0]
   );
@@ -98,15 +104,12 @@ export default function Messages() {
                     onClick={() => setSelectedConversation(conversation)}
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
-                        <Image
-                          src={conversation.avatar}
-                          alt={conversation.name}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <AvatarWithTypeIndicator
+                        userType={conversation.userType}
+                        src={conversation.avatar}
+                        size="md"
+                        alt={conversation.name}
+                      />
                       {conversation.online && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                       )}
@@ -138,15 +141,12 @@ export default function Messages() {
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100">
-                      <Image
-                        src="/default-avatar.png"
-                        alt={selectedConversation.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <AvatarWithTypeIndicator
+                      userType={selectedConversation.userType}
+                      src={selectedConversation.avatar || "/default-avatar.png"}
+                      size="sm"
+                      alt={selectedConversation.name}
+                    />
                     {selectedConversation.online && (
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
                     )}
@@ -211,13 +211,12 @@ export default function Messages() {
               <div className="flex-grow overflow-y-auto p-4 space-y-4">
                 {/* Sample messages - you would map through actual messages here */}
                 <div className="flex gap-3 max-w-[80%]">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
-                    <Image
-                      src="/default-avatar.png"
+                  <div className="relative flex-shrink-0">
+                    <AvatarWithTypeIndicator
+                      userType={selectedConversation.userType}
+                      src={selectedConversation.avatar || "/default-avatar.png"}
+                      size="sm"
                       alt={selectedConversation.name}
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
@@ -232,13 +231,12 @@ export default function Messages() {
                 </div>
 
                 <div className="flex gap-3 max-w-[80%] ml-auto flex-row-reverse">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
-                    <Image
+                  <div className="relative flex-shrink-0">
+                    <AvatarWithTypeIndicator
+                      userType={profile?.user_type || "student"}
                       src="/default-avatar.png"
+                      size="sm"
                       alt="You"
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="text-right">

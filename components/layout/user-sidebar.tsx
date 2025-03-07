@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   Sliders,
   LucideIcon,
-  Users
+  Users,
+  Heart
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -85,6 +86,13 @@ const getSidebarLinks = (userType: string | undefined): SidebarItem[] => {
       href: "/assigned-teachers",
       icon: Users,
     });
+    
+    // Add favourite teachers link for students
+    links.push({
+      title: "Favourite Teachers",
+      href: "/favourite-teachers",
+      icon: Heart,
+    });
   } else if (userType === "parent") {
     // Add parent profile link
     links.push({
@@ -98,6 +106,13 @@ const getSidebarLinks = (userType: string | undefined): SidebarItem[] => {
       title: "Assigned Teachers",
       href: "/assigned-teachers",
       icon: Users,
+    });
+    
+    // Add favourite teachers link for parents
+    links.push({
+      title: "Favourite Teachers",
+      href: "/favourite-teachers",
+      icon: Heart,
     });
   }
 
@@ -199,7 +214,7 @@ export default function UserSidebar() {
           {/* User Info */}
           <div className="p-6 border-b">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 relative">
                 <AvatarWithTypeIndicator
                   size="md"
                   className="!h-10 !w-10 rounded-full"
