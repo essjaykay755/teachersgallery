@@ -345,11 +345,16 @@ export default function Home() {
               ) : (
                 // Fallback to dummy teachers if no real data available
                 dummyTeachers.map((teacher) => {
+                  // Extract experience from tags (e.g., "10+ years" -> "10+")
+                  const experienceTag = teacher.tags.find(tag => tag.includes('years'));
+                  const experience = experienceTag ? experienceTag.split(' ')[0] : 'New';
+                  
                   const transformedTeacher = {
                     ...teacher,
                     avatarUrl: `/avatars/avatar${teacher.avatarIndex}.jpg`,
                     is_verified: teacher.isVerified,
-                    subject: [teacher.subject]
+                    subject: [teacher.subject],
+                    experience: experience
                   };
                   
                   return (

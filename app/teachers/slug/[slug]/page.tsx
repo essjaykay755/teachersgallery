@@ -49,13 +49,30 @@ export default function TeacherProfileBySlug() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Add a timeout for loading state
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.error("Loading timeout for teacher profile slug:", slug);
+        setError("Loading timed out. Please try again.");
+        setIsLoading(false);
+      }
+    }, 10000); // 10 seconds timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, slug]);
+
   useEffect(() => {
     if (!slug) return;
+    
+    console.log("Loading teacher profile for slug:", slug);
     
     // Find the teacher with the matching slug from dummy data
     const foundTeacher = dummyTeachers.find((t: DummyTeacher) => t.id === slug);
     
     if (foundTeacher) {
+      console.log("Found dummy teacher:", foundTeacher.name);
+      
       // Transform the dummy teacher data to match the expected format
       setTeacher({
         id: foundTeacher.id,
@@ -76,6 +93,7 @@ export default function TeacherProfileBySlug() {
         }
       });
     } else {
+      console.error("Teacher not found for slug:", slug);
       setError("Teacher not found");
     }
     
@@ -145,7 +163,7 @@ export default function TeacherProfileBySlug() {
                 </AvatarFallback>
               </Avatar>
               {teacher.is_verified && (
-                <span className="absolute bottom-1 right-1 bg-green-500 text-white p-1 rounded-full">
+                <span className="absolute bottom-1 right-1 bg-green-500 text-white p-1 rounded-full z-10">
                   <CheckCircle className="h-4 w-4" />
                 </span>
               )}
@@ -162,6 +180,11 @@ export default function TeacherProfileBySlug() {
                     Verified
                   </span>
                 )}
+                {(!teacher.rating || teacher.rating === 0) && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    New
+                  </span>
+                )}
               </div>
               
               <p className="text-lg text-gray-600 mt-1">
@@ -176,9 +199,15 @@ export default function TeacherProfileBySlug() {
               <div className="flex flex-wrap items-center gap-4 mt-3">
                 <div className="flex items-center">
                   <StarRating rating={teacher.rating || 0} size="md" />
-                  <span className="ml-2 text-lg font-medium text-gray-900">
-                    {teacher.rating?.toFixed(1) || "New"}
-                  </span>
+                  {teacher.rating ? (
+                    <span className="ml-2 text-lg font-medium text-gray-900">
+                      {teacher.rating.toFixed(1)}/5
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-sm italic text-gray-500">
+                      No ratings yet
+                    </span>
+                  )}
                   {teacher.reviews_count && teacher.reviews_count > 0 && (
                     <span className="ml-1 text-sm text-gray-500">
                       ({teacher.reviews_count} reviews)
@@ -187,7 +216,8 @@ export default function TeacherProfileBySlug() {
                 </div>
                 
                 <div className="text-xl font-semibold text-blue-600">
-                  {teacher.fee}
+                  ₹{teacher.fee}
+                  {!teacher.fee?.includes('/hr') && !teacher.fee?.includes(' hr') && '/hr'}
                 </div>
               </div>
             </div>

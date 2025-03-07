@@ -45,6 +45,20 @@ export default function TeacherProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Add a timeout for the loading state
+  useEffect(() => {
+    // Set a timeout to handle loading that takes too long
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.error("Loading timeout for teacher profile:", teacherId);
+        setError("Loading timed out. Please try again.");
+        setIsLoading(false);
+      }
+    }, 15000); // 15 seconds timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, teacherId]);
+
   useEffect(() => {
     if (!teacherId) return;
     
@@ -53,6 +67,7 @@ export default function TeacherProfile() {
       setError(null);
       
       try {
+        console.log("Fetching teacher profile for ID:", teacherId);
         const supabase = createClientComponentClient();
         
         // Fetch teacher profile
@@ -70,10 +85,17 @@ export default function TeacherProfile() {
           .single();
           
         if (teacherError) {
+          console.error("Supabase error fetching teacher:", teacherError);
           throw new Error(teacherError.message);
         }
         
-        setTeacher(teacherData || null);
+        if (!teacherData) {
+          console.error("No teacher data found for ID:", teacherId);
+          throw new Error("Teacher not found");
+        }
+        
+        console.log("Teacher data received:", teacherData);
+        setTeacher(teacherData);
         
         // Fetch experiences and education in parallel
         const [experiencesData, educationsData, reviewsData] = await Promise.all([
@@ -186,7 +208,7 @@ export default function TeacherProfile() {
                 </AvatarFallback>
               </Avatar>
               {teacher.is_verified && (
-                <span className="absolute bottom-1 right-1 bg-green-500 text-white p-1 rounded-full">
+                <span className="absolute bottom-1 right-1 bg-green-500 text-white p-1 rounded-full z-10">
                   <CheckCircle className="h-4 w-4" />
                 </span>
               )}
@@ -203,6 +225,11 @@ export default function TeacherProfile() {
                     Verified
                   </span>
                 )}
+                {(!teacher.rating || teacher.rating === 0) && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    New
+                  </span>
+                )}
               </div>
               
               <p className="text-lg text-gray-600 mt-1">
@@ -217,9 +244,15 @@ export default function TeacherProfile() {
               <div className="flex flex-wrap items-center gap-4 mt-3">
                 <div className="flex items-center">
                   <StarRating rating={teacher.rating || 0} size="md" />
-                  <span className="ml-2 text-lg font-medium text-gray-900">
-                    {teacher.rating?.toFixed(1) || "New"}
-                  </span>
+                  {teacher.rating ? (
+                    <span className="ml-2 text-lg font-medium text-gray-900">
+                      {teacher.rating.toFixed(1)}/5
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-sm italic text-gray-500">
+                      No ratings yet
+                    </span>
+                  )}
                   {teacher.reviews_count && teacher.reviews_count > 0 && (
                     <span className="ml-1 text-sm text-gray-500">
                       ({teacher.reviews_count} reviews)
@@ -228,7 +261,8 @@ export default function TeacherProfile() {
                 </div>
                 
                 <div className="text-xl font-semibold text-blue-600">
-                  {teacher.fee}
+                  ₹{teacher.fee}
+                  {!teacher.fee?.includes('/hr') && !teacher.fee?.includes(' hr') && '/hr'}
                 </div>
               </div>
               
