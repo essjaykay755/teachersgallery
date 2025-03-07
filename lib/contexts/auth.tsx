@@ -70,15 +70,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Clean up avatar_url - ensure it's a valid URL or default avatar
       const avatarUrl = data.avatar_url?.trim();
+      const validAvatarUrl = (avatarUrl && avatarUrl !== "" && !avatarUrl.includes("default-avatar")) 
+        ? avatarUrl 
+        : "/default-avatar.png";
       
-      // Ensure user_type is set
-      const userType = data.user_type || "unknown";
+      // Ensure user_type is set and admin is preserved
+      let userType = data.user_type || "unknown";
+      
+      // Check for special user types
+      if (data.email === "subhoj33t@gmail.com") {
+        console.log("AuthProvider: Setting teacher role for subhoj33t@gmail.com");
+        
+        // For this user, set user_type to teacher if a teacher profile exists
+        const { data: teacherData, error: teacherError } = await supabase
+          .from("teacher_profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle();
+          
+        if (teacherError) {
+          console.error("Error checking teacher profile:", teacherError);
+        } else if (teacherData) {
+          console.log("AuthProvider: Teacher profile found for subhoj33t@gmail.com");
+          userType = "teacher";
+          
+          // Update in the database if needed
+          if (data.user_type !== "teacher") {
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({ user_type: "teacher" })
+              .eq("id", userId);
+              
+            if (updateError) {
+              console.error("Failed to update teacher role:", updateError);
+            }
+          }
+        }
+      }
+      
       console.log("AuthProvider: Normalized user type:", userType);
       
       const profile = {
         ...data,
         user_type: userType, // Ensure user_type is set explicitly
-        avatar_url: avatarUrl && avatarUrl !== "" ? avatarUrl : "/default-avatar.png"
+        avatar_url: validAvatarUrl
       };
       
       console.log(`AuthProvider: Profile processed for user ${userId}, user_type: ${profile.user_type}, avatar:`, profile.avatar_url);

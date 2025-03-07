@@ -10,9 +10,11 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function StudentProfilePage() {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [studentProfile, setStudentProfile] = useState<any>(null);
@@ -102,11 +104,19 @@ export default function StudentProfilePage() {
         if (error) throw error;
       }
       
-      alert("Student profile saved successfully!");
+      toast({
+        title: "Success",
+        description: "Student profile saved successfully!",
+        variant: "default",
+      });
       fetchStudentProfile(); // Refresh data
     } catch (error) {
       console.error("Error saving student profile:", error);
-      alert("Failed to save profile. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

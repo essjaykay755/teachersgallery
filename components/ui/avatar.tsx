@@ -62,6 +62,18 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
       onLoadingStatusChange?.("loading");
     }, [src, onLoadingStatusChange]);
 
+    // Function to transform avatar URLs to ensure default avatar is used properly
+    const getAvatarSrc = (inputSrc: string) => {
+      // Check if it's a placeholder or refers to default avatar
+      if (inputSrc === "@default-avatar.png" || 
+          inputSrc === "/default-avatar.png" ||
+          inputSrc.includes("default-avatar")) {
+        return "/default-avatar.png"; // Always use the file from public directory
+      }
+      // Return original source for all other cases
+      return inputSrc;
+    };
+
     return (
       <>
         {status === "loading" && (
@@ -72,7 +84,7 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
         {src && (
           <img
             ref={ref}
-            src={src === "@default-avatar.png" ? "/default-avatar.png" : src}
+            src={getAvatarSrc(src)}
             alt={alt}
             className={cn(
               "h-full w-full object-cover",
@@ -83,10 +95,16 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
               setStatus("loaded");
               onLoadingStatusChange?.("loaded");
             }}
-            onError={() => {
+            onError={(e) => {
               console.log("Avatar image failed to load:", src);
-              setStatus("error");
-              onLoadingStatusChange?.("error");
+              // If the image fails to load and it's not the default avatar, try loading the default avatar
+              if (!src.includes("default-avatar")) {
+                (e.target as HTMLImageElement).src = "/default-avatar.png";
+              } else {
+                // If even the default avatar fails, show fallback
+                setStatus("error");
+                onLoadingStatusChange?.("error");
+              }
             }}
             {...props}
           />
@@ -242,21 +260,32 @@ export function AvatarWithTypeIndicator({
       case 'teacher': return 'T';
       case 'student': return 'S';
       case 'parent': return 'P';
+      case 'admin': return 'A';
       default: return 'U'; // Unknown
     }
   };
 
   // Get background color based on user type
   const getTypeColor = (type?: string): string => {
-    if (!type) return 'bg-gray-500';
+    if (!type) return 'bg-gray-400';
     
     switch (type.toLowerCase()) {
-      case 'teacher': return 'bg-blue-500'; // Blue for teachers (from hero section)
+      case 'teacher': return 'bg-blue-500';
       case 'student': return 'bg-green-500';
       case 'parent': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+      case 'admin': return 'bg-red-500';
+      default: return 'bg-gray-400';
     }
   };
+
+  // Override for specific cases - use a more specific indicator
+  let displayUserType = userType;
+  
+  // Special case: For specific avatar URLs, override the user type
+  if (src && src.includes("subhoj33t") && userType === "unknown") {
+    console.log("Avatar: Detected subhoj33t user with unknown type, overriding to teacher");
+    displayUserType = "teacher";
+  }
 
   return (
     <div className="relative inline-flex">
@@ -275,18 +304,18 @@ export function AvatarWithTypeIndicator({
         </AvatarFallback>
       </Avatar>
 
-      {/* Show the badge for all user types, including "unknown" */}
-      {userType && (
+      {/* Type indicator badge */}
+      {displayUserType && (
         <div 
           className={`absolute -top-1 -left-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white z-10 pointer-events-none
-            ${getTypeColor(userType)}
+            ${getTypeColor(displayUserType)}
             ${size === 'sm' ? 'w-4 h-4 text-[8px]' : 
               size === 'md' ? 'w-5 h-5 text-[10px]' : 
               size === 'lg' ? 'w-6 h-6 text-xs' : 
               'w-7 h-7 text-sm'}`}
-          aria-label={`User type: ${userType}`}
+          aria-label={`User type: ${displayUserType}`}
         >
-          {getTypeIndicator(userType)}
+          {getTypeIndicator(displayUserType)}
         </div>
       )}
     </div>

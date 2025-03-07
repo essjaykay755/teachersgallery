@@ -10,9 +10,11 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ParentProfilePage() {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [parentProfile, setParentProfile] = useState<any>(null);
@@ -102,11 +104,19 @@ export default function ParentProfilePage() {
         if (error) throw error;
       }
       
-      alert("Parent profile saved successfully!");
+      toast({
+        title: "Success",
+        description: "Parent profile saved successfully!",
+        variant: "default",
+      });
       fetchParentProfile(); // Refresh data
     } catch (error) {
       console.error("Error saving parent profile:", error);
-      alert("Failed to save profile. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

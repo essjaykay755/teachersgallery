@@ -18,7 +18,7 @@ export type Profile = {
   full_name: string;
   email: string;
   phone?: string;
-  user_type: "teacher" | "student" | "parent";
+  user_type: "teacher" | "student" | "parent" | "admin";
   avatar_url?: string;
   created_at: string;
 };
@@ -34,6 +34,24 @@ export type TeacherProfile = {
   is_verified: boolean;
   rating?: number;
   reviews_count?: number;
+  created_at: string;
+  profiles?: Profile;
+};
+
+export type StudentProfile = {
+  id: string;
+  user_id: string;
+  grade: string;
+  interests: string[];
+  created_at: string;
+  profiles?: Profile;
+};
+
+export type ParentProfile = {
+  id: string;
+  user_id: string;
+  children_count: number;
+  children_grades: string[];
   created_at: string;
   profiles?: Profile;
 };

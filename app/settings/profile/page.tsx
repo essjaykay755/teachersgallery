@@ -22,6 +22,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage, AvatarWithTypeIndicator } from "@/components/ui/avatar";
 import { uploadAvatar } from "@/lib/upload";
 import { Loader2, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import type { StudentProfile, ParentProfile } from "@/lib/supabase";
 
 // Form validation schema
 const formSchema = z.object({
@@ -29,6 +32,12 @@ const formSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address.").optional(),
   phone: z.string().optional(),
+  // Student fields
+  grade: z.string().optional(),
+  interests: z.array(z.string()).optional(),
+  // Parent fields
+  childrenCount: z.number().min(1).optional(),
+  childrenGrades: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -39,6 +48,10 @@ export default function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [newInterest, setNewInterest] = useState("");
   const supabase = createClientComponentClient();
   const { toast } = useToast();
 
@@ -49,6 +62,10 @@ export default function ProfileSettings() {
       lastName: "",
       email: user?.email || "",
       phone: "",
+      grade: "",
+      interests: [],
+      childrenCount: 1,
+      childrenGrades: [],
     },
   });
 
@@ -68,8 +85,60 @@ export default function ProfileSettings() {
       });
 
       setAvatarUrl(profile.avatar_url || null);
+
+      // Load type-specific profile data
+      if (profile.user_type === "student") {
+        loadStudentProfile();
+      } else if (profile.user_type === "parent") {
+        loadParentProfile();
+      }
     }
   }, [profile, user, form]);
+
+  const loadStudentProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("student_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching student profile:", error);
+      } else if (data) {
+        setStudentProfile(data);
+        form.setValue("grade", data.grade);
+        form.setValue("interests", data.interests);
+        setInterests(data.interests);
+      }
+    } catch (error) {
+      console.error("Error fetching student profile:", error);
+    }
+  };
+
+  const loadParentProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("parent_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching parent profile:", error);
+      } else if (data) {
+        setParentProfile(data);
+        form.setValue("childrenCount", data.children_count);
+        form.setValue("childrenGrades", data.children_grades);
+      }
+    } catch (error) {
+      console.error("Error fetching parent profile:", error);
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,13 +153,28 @@ export default function ProfileSettings() {
     }
   };
 
+  const handleAddInterest = () => {
+    if (newInterest.trim() && !interests.includes(newInterest.trim())) {
+      const updatedInterests = [...interests, newInterest.trim()];
+      setInterests(updatedInterests);
+      form.setValue("interests", updatedInterests);
+      setNewInterest("");
+    }
+  };
+
+  const handleRemoveInterest = (interest: string) => {
+    const updatedInterests = interests.filter(i => i !== interest);
+    setInterests(updatedInterests);
+    form.setValue("interests", updatedInterests);
+  };
+
   const onSubmit = async (data: FormValues) => {
-    if (!user) return;
+    if (!user || !profile) return;
 
     setIsLoading(true);
     try {
       // Upload avatar if changed
-      let finalAvatarUrl = profile?.avatar_url || null;
+      let finalAvatarUrl = profile.avatar_url || null;
       if (avatarFile) {
         setIsUploading(true);
         const result = await uploadAvatar(avatarFile, user.id);
@@ -106,8 +190,8 @@ export default function ProfileSettings() {
       // Combine first and last name
       const fullName = `${data.firstName} ${data.lastName}`.trim();
 
-      // Update profile in database
-      const { error } = await supabase
+      // Update base profile
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
@@ -117,7 +201,30 @@ export default function ProfileSettings() {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update type-specific profile
+      if (profile.user_type === "student") {
+        const { error: studentError } = await supabase
+          .from("student_profiles")
+          .upsert({
+            user_id: user.id,
+            grade: data.grade,
+            interests: data.interests,
+          });
+
+        if (studentError) throw studentError;
+      } else if (profile.user_type === "parent") {
+        const { error: parentError } = await supabase
+          .from("parent_profiles")
+          .upsert({
+            user_id: user.id,
+            children_count: data.childrenCount,
+            children_grades: data.childrenGrades,
+          });
+
+        if (parentError) throw parentError;
+      }
 
       // Refresh profile data in context
       await refreshProfile();
@@ -175,7 +282,8 @@ export default function ProfileSettings() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -239,6 +347,127 @@ export default function ProfileSettings() {
                 </FormItem>
               )}
             />
+
+            {/* Student-specific fields */}
+            {profile?.user_type === "student" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="grade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grade/Class</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your grade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Array.from({ length: 5 }, (_, i) => i + 8).map((grade) => (
+                            <SelectItem key={grade} value={grade.toString()}>
+                              {grade}th Grade
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-2">
+                  <FormLabel>Subjects of Interest</FormLabel>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={newInterest}
+                      onChange={(e) => setNewInterest(e.target.value)}
+                      placeholder="Add a subject"
+                      onKeyPress={(e) => e.key === "Enter" && handleAddInterest()}
+                    />
+                    <Button type="button" onClick={handleAddInterest}>
+                      Add
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {interests.map((interest) => (
+                      <div
+                        key={interest}
+                        className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center gap-2"
+                      >
+                        {interest}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveInterest(interest)}
+                          className="text-secondary-foreground/50 hover:text-secondary-foreground"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Parent-specific fields */}
+            {profile?.user_type === "parent" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="childrenCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Children</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select number of children" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Array.from({ length: 5 }, (_, i) => i + 1).map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="childrenGrades"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Children's Grades</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value?.join(", ") || ""}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value.split(",").map((grade) => grade.trim())
+                            )
+                          }
+                          placeholder="e.g., 8th, 10th"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter grades separated by commas
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
           </form>
         </Form>
       </CardContent>

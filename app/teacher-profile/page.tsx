@@ -12,10 +12,13 @@ import type { TeacherProfile } from "@/lib/supabase";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function TeacherProfilePage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile | null>(null);
   
   // Teacher profile form state
@@ -39,6 +42,21 @@ export default function TeacherProfilePage() {
     education: "" 
   });
 
+  // Add debug logging for profile data
+  useEffect(() => {
+    console.log("TeacherProfilePage: Profile data:", {
+      hasProfile: !!profile,
+      userType: profile?.user_type,
+      userId: user?.id,
+      fullProfile: profile
+    });
+
+    // If profile exists but user type is not teacher, attempt to fix it
+    if (profile && profile.user_type !== "teacher") {
+      verifyAndFixUserType();
+    }
+  }, [profile, user]);
+
   useEffect(() => {
     setIsClient(true);
     
@@ -52,6 +70,7 @@ export default function TeacherProfilePage() {
     if (!user) return;
     
     try {
+      console.log("TeacherProfilePage: Fetching teacher profile for user:", user.id);
       const supabase = createClientComponentClient();
       const { data, error } = await supabase
         .from("teacher_profiles")
@@ -62,13 +81,14 @@ export default function TeacherProfilePage() {
       if (error) {
         console.error("Error fetching teacher profile:", error);
       } else if (data) {
+        console.log("TeacherProfilePage: Teacher profile loaded:", data);
         setTeacherProfile(data);
         // Populate form data with existing profile data
         setTeacherFormData({
           ...teacherFormData,
           subject: data.subjects ? Array.isArray(data.subjects) ? data.subjects : [data.subjects] : [],
           location: data.location || "",
-          fee: data.fee_structure || "",
+          fee: data.fee || "",
           about: data.about || "",
           tags: data.tags ? Array.isArray(data.tags) ? data.tags : [data.tags] : [],
           is_listed: data.is_listed !== undefined ? data.is_listed : true,
@@ -80,6 +100,8 @@ export default function TeacherProfilePage() {
           teaching_format: data.teaching_format || "both",
           education: data.education || ""
         });
+      } else {
+        console.log("TeacherProfilePage: No existing teacher profile found");
       }
     } catch (error) {
       console.error("Error fetching teacher profile:", error);
@@ -156,18 +178,45 @@ export default function TeacherProfilePage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return;
+    if (!user) return { error: new Error("No user found") };
     
     try {
+      console.log("TeacherProfilePage: Saving profile with data:", {
+        userId: user.id,
+        formData: teacherFormData,
+        hasExistingProfile: !!teacherProfile,
+        teacherProfileId: teacherProfile?.id
+      });
+      
       const supabase = createClientComponentClient();
-      const updateData = {
+
+      // First check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("teacher_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking for existing profile:", checkError);
+        return { error: new Error(checkError.message) };
+      }
+
+      const profileExists = !!existingProfile;
+      console.log("Profile exists check:", { profileExists, existingProfile });
+      
+      // Basic profile data that we know exists in the database
+      const baseUpdateData = {
         subjects: teacherFormData.subject,
         location: teacherFormData.location,
-        fee_structure: teacherFormData.fee,
+        fee: teacherFormData.fee,
         about: teacherFormData.about,
         tags: teacherFormData.tags,
         is_listed: teacherFormData.is_listed,
-        // New fields
+      };
+
+      // Additional fields that might not exist yet
+      const additionalData = {
         qualifications: teacherFormData.qualifications,
         years_experience: teacherFormData.years_experience,
         teaching_style: teacherFormData.teaching_style,
@@ -176,31 +225,137 @@ export default function TeacherProfilePage() {
         education: teacherFormData.education
       };
       
-      if (teacherProfile) {
+      if (profileExists) {
         // Update existing profile
-        const { error } = await supabase
-          .from("teacher_profiles")
-          .update(updateData)
-          .eq("user_id", user.id);
-          
-        if (error) throw error;
+        try {
+          console.log("Attempting to update profile with all fields...");
+          // First try to update with all fields
+          const { error } = await supabase
+            .from("teacher_profiles")
+            .update({ ...baseUpdateData, ...additionalData })
+            .eq("user_id", user.id);
+            
+          if (error) {
+            console.log("Full update failed, trying with base fields only:", error);
+            // If that fails, try with just the base fields
+            const { error: baseError } = await supabase
+              .from("teacher_profiles")
+              .update(baseUpdateData)
+              .eq("user_id", user.id);
+              
+            if (baseError) {
+              console.error("Error updating teacher profile with base fields:", baseError);
+              return { error: new Error(baseError.message) };
+            }
+            
+            // Show a warning toast that some fields couldn't be saved
+            toast({
+              title: "Partial Update",
+              description: "Some new fields couldn't be saved. Please contact support if this persists.",
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error("Error updating teacher profile:", error);
+          return { error: error instanceof Error ? error : new Error("Failed to update profile") };
+        }
       } else {
         // Create new profile
-        const { error } = await supabase
-          .from("teacher_profiles")
-          .insert({
-            user_id: user.id,
-            ...updateData
-          });
-          
-        if (error) throw error;
+        try {
+          console.log("Attempting to create profile with all fields...");
+          // First try to create with all fields
+          const { error } = await supabase
+            .from("teacher_profiles")
+            .insert({
+              user_id: user.id,
+              ...baseUpdateData,
+              ...additionalData
+            });
+            
+          if (error) {
+            console.log("Full insert failed, trying with base fields only:", error);
+            // If that fails, try with just the base fields
+            const { error: baseError } = await supabase
+              .from("teacher_profiles")
+              .insert({
+                user_id: user.id,
+                ...baseUpdateData
+              });
+              
+            if (baseError) {
+              console.error("Error creating teacher profile with base fields:", baseError);
+              return { error: new Error(baseError.message) };
+            }
+            
+            // Show a warning toast that some fields couldn't be saved
+            toast({
+              title: "Partial Save",
+              description: "Some new fields couldn't be saved. Please contact support if this persists.",
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error("Error creating teacher profile:", error);
+          return { error: error instanceof Error ? error : new Error("Failed to create profile") };
+        }
       }
       
-      alert("Profile saved successfully!");
-      fetchTeacherProfile(); // Refresh data
+      // After successful save, refresh the base profile to ensure it's up to date
+      await refreshProfile();
+      
+      console.log("TeacherProfilePage: Profile saved successfully");
+      return { error: null };
     } catch (error) {
       console.error("Error saving teacher profile:", error);
-      alert("Failed to save profile. Please try again.");
+      return { error: error instanceof Error ? error : new Error("Failed to save profile") };
+    }
+  };
+
+  // Function to verify and fix user type
+  const verifyAndFixUserType = async () => {
+    if (!user || !profile) return;
+
+    try {
+      console.log("TeacherProfilePage: Verifying user type");
+      const supabase = createClientComponentClient();
+
+      // First check if a teacher profile exists for this user
+      const { data: teacherData, error: teacherError } = await supabase
+        .from("teacher_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (teacherError && teacherError.code !== "PGRST116") { // PGRST116 is "no rows returned"
+        console.error("Error checking teacher profile:", teacherError);
+        return;
+      }
+
+      // If teacher profile exists but user type is wrong, fix it
+      if (teacherData && profile.user_type !== "teacher") {
+        console.log("TeacherProfilePage: Found teacher profile but wrong user type. Fixing...");
+        
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ user_type: "teacher" })
+          .eq("id", user.id);
+
+        if (updateError) {
+          console.error("Error updating user type:", updateError);
+          return;
+        }
+
+        // Refresh the profile to get the updated user type
+        await refreshProfile();
+        
+        toast({
+          title: "Profile Updated",
+          description: "Your account type has been corrected to Teacher.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying user type:", error);
     }
   };
 
@@ -563,9 +718,55 @@ export default function TeacherProfilePage() {
               <Button 
                 type="button" 
                 className="w-full"
-                onClick={handleSaveProfile}
+                disabled={isLoading}
+                onClick={async () => {
+                  if (!user) {
+                    toast({
+                      title: "Error",
+                      description: "You must be logged in to save your profile.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  setIsLoading(true);
+                  let saveError = null;
+                  
+                  try {
+                    const result = await handleSaveProfile();
+                    saveError = result.error;
+                    
+                    if (!saveError) {
+                      toast({
+                        title: "Success",
+                        description: "Teacher profile saved successfully!",
+                        variant: "default",
+                      });
+                      await fetchTeacherProfile(); // Refresh data
+                    } else {
+                      throw saveError; // This will be caught by the catch block below
+                    }
+                  } catch (err) {
+                    console.error("Error saving profile:", err);
+                    const errorMessage = err instanceof Error ? err.message : "Failed to save profile. Please try again.";
+                    toast({
+                      title: "Error",
+                      description: errorMessage,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
               >
-                Save Profile
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Profile"
+                )}
               </Button>
             </div>
           </div>
