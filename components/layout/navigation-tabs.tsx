@@ -9,7 +9,8 @@ import {
   LogOut,
   User,
   GraduationCap,
-  Users
+  Users,
+  Heart
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -80,6 +81,13 @@ export default function NavigationTabs() {
       href: "/assigned-teachers", 
       icon: Users,
     });
+    
+    // Add favourite teachers link for students
+    navItems.push({
+      title: "Favourite Teachers",
+      href: "/account/favourite-teachers",
+      icon: Heart,
+    });
   }
   // Add parent profile if user is a parent
   else if (profile?.user_type === "parent") {
@@ -94,6 +102,13 @@ export default function NavigationTabs() {
       title: "Assigned Teachers",
       href: "/assigned-teachers",
       icon: Users,
+    });
+    
+    // Add favourite teachers link for parents
+    navItems.push({
+      title: "Favourite Teachers",
+      href: "/account/favourite-teachers",
+      icon: Heart,
     });
   }
   

@@ -43,6 +43,18 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
     const [status, setStatus] = React.useState<"loading" | "loaded" | "error">(
       src ? "loading" : "error"
     );
+    
+    // Reset status when src changes to ensure proper loading
+    React.useEffect(() => {
+      // Reset status when src changes
+      if (src) {
+        setStatus("loading");
+        onLoadingStatusChange?.("loading");
+      } else {
+        setStatus("error");
+        onLoadingStatusChange?.("error");
+      }
+    }, [src, onLoadingStatusChange]);
 
     React.useEffect(() => {
       if (!src) {
@@ -57,19 +69,25 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
         onLoadingStatusChange?.("loaded");
         return;
       }
-
-      setStatus("loading");
-      onLoadingStatusChange?.("loading");
     }, [src, onLoadingStatusChange]);
 
     // Function to transform avatar URLs to ensure default avatar is used properly
     const getAvatarSrc = (inputSrc: string) => {
+      // Check if it's empty, null, or undefined
+      if (!inputSrc) {
+        return "/default-avatar.png";
+      }
+      
       // Check if it's a placeholder or refers to default avatar
       if (inputSrc === "@default-avatar.png" || 
           inputSrc === "/default-avatar.png" ||
           inputSrc.includes("default-avatar")) {
         return "/default-avatar.png"; // Always use the file from public directory
       }
+      
+      // Debug the URL
+      console.log("Avatar rendering with URL:", inputSrc);
+      
       // Return original source for all other cases
       return inputSrc;
     };
@@ -87,21 +105,35 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
             src={getAvatarSrc(src)}
             alt={alt}
             className={cn(
-              "h-full w-full object-cover",
+              "h-full w-full object-cover z-10 relative",
               status === "loading" && "opacity-0",
               className
             )}
             onLoad={() => {
+              console.log("Avatar loaded successfully:", src);
               setStatus("loaded");
               onLoadingStatusChange?.("loaded");
             }}
             onError={(e) => {
-              console.log("Avatar image failed to load:", src);
-              // If the image fails to load and it's not the default avatar, try loading the default avatar
-              if (!src.includes("default-avatar")) {
-                (e.target as HTMLImageElement).src = "/default-avatar.png";
+              console.error("Avatar image failed to load:", src);
+              
+              // Only use default avatar if the URL is completely invalid or fails to load
+              // and is not already the default avatar
+              if (src && !src.includes("default-avatar")) {
+                console.log("Replacing with default avatar");
+                
+                // Track whether we're already falling back to prevent infinite loops
+                const target = e.target as HTMLImageElement;
+                if (!target.dataset.fallbackAttempted) {
+                  target.dataset.fallbackAttempted = "true";
+                  target.src = "/default-avatar.png";
+                } else {
+                  console.error("Default avatar also failed to load, showing fallback");
+                  setStatus("error");
+                  onLoadingStatusChange?.("error");
+                }
               } else {
-                // If even the default avatar fails, show fallback
+                // If this is the default avatar or we've already tried a fallback, show fallback component
                 setStatus("error");
                 onLoadingStatusChange?.("error");
               }
@@ -140,7 +172,7 @@ const AvatarFallback = React.forwardRef<HTMLDivElement, AvatarFallbackProps>(
       <div
         ref={ref}
         className={cn(
-          "absolute inset-0 flex h-full w-full items-center justify-center bg-muted",
+          "absolute inset-0 flex h-full w-full items-center justify-center bg-muted z-0",
           className
         )}
         {...props}
@@ -202,12 +234,12 @@ export function LegacyAvatar({
     <div
       className={cn(
         sizeMap[size],
-        "rounded-full overflow-hidden",
+        "rounded-full overflow-hidden relative",
         className
       )}
     >
       {isLoading && (
-        <div className="h-full w-full bg-gray-100 flex items-center justify-center">
+        <div className="h-full w-full bg-gray-100 flex items-center justify-center absolute inset-0 z-0">
           <div className="w-1/2 h-1/2 rounded-full animate-pulse bg-gray-200" />
         </div>
       )}
@@ -215,12 +247,15 @@ export function LegacyAvatar({
         src={imgSrc}
         alt={alt}
         className={cn(
-          "h-full w-full object-cover",
-          isLoading ? "hidden" : "block"
+          "h-full w-full object-cover relative z-10",
+          isLoading ? "opacity-0" : "opacity-100"
         )}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          console.log("Avatar image failed to load:", imgSrc);
+        onLoad={() => {
+          console.log("LegacyAvatar: Image loaded successfully:", imgSrc);
+          setIsLoading(false);
+        }}
+        onError={(e) => {
+          console.error("LegacyAvatar: Image failed to load:", imgSrc);
           setHasError(true);
         }}
       />
@@ -247,10 +282,28 @@ export function AvatarWithTypeIndicator({
   className,
   ...props
 }: AvatarWithTypeIndicatorProps) {
-  // Debug user type
+  // Keep track of loading state
+  const [imageStatus, setImageStatus] = React.useState<"loading" | "loaded" | "error">(
+    src ? "loading" : "error"
+  );
+  const [effectiveUserType, setEffectiveUserType] = React.useState<string | undefined>(userType);
+  
+  // Process user type in useEffect to ensure it only runs client-side
   React.useEffect(() => {
-    console.log("Avatar rendering with userType:", userType);
-  }, [userType]);
+    // Special case: For specific avatar URLs, override the user type
+    if (src && src.includes("subhoj33t") && userType === "unknown") {
+      setEffectiveUserType("teacher");
+    } else {
+      setEffectiveUserType(userType);
+    }
+  }, [src, userType]);
+
+  // For debugging
+  React.useEffect(() => {
+    if (src) {
+      console.log("AvatarWithTypeIndicator: src =", src);
+    }
+  }, [src]);
 
   // Map user type to display letter
   const getTypeIndicator = (type?: string): string => {
@@ -278,44 +331,49 @@ export function AvatarWithTypeIndicator({
     }
   };
 
-  // Override for specific cases - use a more specific indicator
-  let displayUserType = userType;
-  
-  // Special case: For specific avatar URLs, override the user type
-  if (src && src.includes("subhoj33t") && userType === "unknown") {
-    console.log("Avatar: Detected subhoj33t user with unknown type, overriding to teacher");
-    displayUserType = "teacher";
-  }
+  // Only use the default avatar if src is explicitly empty or a default avatar path
+  const shouldUseDefaultAvatar = !src || src === "" || src === "@default-avatar.png" || src === "/default-avatar.png";
+  const avatarSrc = shouldUseDefaultAvatar ? "/default-avatar.png" : src;
 
   return (
     <div className="relative inline-flex">
       <Avatar size={size} className={className} {...props}>
-        {src && (
+        {avatarSrc && (
           <AvatarImage
-            src={src}
+            key={avatarSrc}
+            src={avatarSrc}
             alt={alt}
+            onLoadingStatusChange={setImageStatus}
             onError={(e) => {
-              console.error("Avatar image failed to load");
+              console.error("Avatar image failed to load:", avatarSrc);
+              setImageStatus("error");
+              // Only replace with default if this isn't already the default avatar
+              if (avatarSrc && !avatarSrc.includes("default-avatar")) {
+                console.log("Falling back to default avatar");
+              }
             }}
           />
         )}
-        <AvatarFallback>
-          {fallback || <User className="h-1/2 w-1/2" />}
-        </AvatarFallback>
+        {/* Only show fallback when image status is error */}
+        {imageStatus === "error" && (
+          <AvatarFallback delayMs={1000}>
+            {fallback || <User className="h-1/2 w-1/2" />}
+          </AvatarFallback>
+        )}
       </Avatar>
 
       {/* Type indicator badge */}
-      {displayUserType && (
+      {effectiveUserType && (
         <div 
-          className={`absolute -top-1 -left-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white z-10 pointer-events-none
-            ${getTypeColor(displayUserType)}
+          className={`absolute -top-1 -left-1 rounded-full flex items-center justify-center text-white font-medium border-2 border-white z-20 pointer-events-none
+            ${getTypeColor(effectiveUserType)}
             ${size === 'sm' ? 'w-4 h-4 text-[8px]' : 
               size === 'md' ? 'w-5 h-5 text-[10px]' : 
               size === 'lg' ? 'w-6 h-6 text-xs' : 
               'w-7 h-7 text-sm'}`}
-          aria-label={`User type: ${displayUserType}`}
+          aria-label={`User type: ${effectiveUserType}`}
         >
-          {getTypeIndicator(displayUserType)}
+          {getTypeIndicator(effectiveUserType)}
         </div>
       )}
     </div>

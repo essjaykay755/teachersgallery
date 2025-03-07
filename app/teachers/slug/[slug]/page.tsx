@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,120 +9,78 @@ import {
   ArrowLeft,
   MapPin,
   Star,
-  Clock,
-  Users,
-  Award,
   CheckCircle,
-  Phone,
-  MessageSquare,
-  Heart,
-  Briefcase,
-  GraduationCap,
-  School,
-  AlertTriangle,
   User,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
-import Image from "next/image";
-import { useRouter, useParams } from "next/navigation";
-import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/ui/star-rating";
-import TeacherExperienceEducation from "@/app/components/TeacherExperienceEducation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import type { TeacherProfile, TeacherExperience, TeacherEducation, Review } from "@/lib/supabase";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import FavouriteButton from "@/components/favourite-button";
-import { fetchTeacherExperiences, fetchTeacherEducations } from "@/lib/api";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import TeacherExperienceEducation from "@/app/components/TeacherExperienceEducation";
+import { DummyTeacher, dummyTeachers } from "../../../mock-data";
 
-export default function TeacherProfile() {
+// Define a custom type for the transformed teacher
+interface TransformedTeacher {
+  id: string;
+  user_id: string;
+  subject: string[];
+  location: string;
+  fee: string;
+  about: string;
+  tags: string[];
+  is_verified: boolean;
+  rating: number;
+  reviews_count: number;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+    email: string;
+    avatar_url: string;
+  };
+}
+
+export default function TeacherProfileBySlug() {
   const router = useRouter();
   const params = useParams();
-  const teacherId = params?.id as string;
+  const slug = params?.slug as string;
   
-  const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
-  const [experiences, setExperiences] = useState<TeacherExperience[]>([]);
-  const [educations, setEducations] = useState<TeacherEducation[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [teacher, setTeacher] = useState<TransformedTeacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!teacherId) return;
+    if (!slug) return;
     
-    async function fetchTeacherProfile() {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const supabase = createClientComponentClient();
-        
-        // Fetch teacher profile
-        const { data: teacherData, error: teacherError } = await supabase
-          .from("teacher_profiles")
-          .select(`
-            *,
-            profiles!user_id (
-              full_name,
-              email,
-              avatar_url
-            )
-          `)
-          .eq("id", teacherId)
-          .single();
-          
-        if (teacherError) {
-          throw new Error(teacherError.message);
+    // Find the teacher with the matching slug from dummy data
+    const foundTeacher = dummyTeachers.find((t: DummyTeacher) => t.id === slug);
+    
+    if (foundTeacher) {
+      // Transform the dummy teacher data to match the expected format
+      setTeacher({
+        id: foundTeacher.id,
+        user_id: foundTeacher.id,
+        subject: [foundTeacher.subject],
+        location: foundTeacher.location,
+        fee: foundTeacher.fee,
+        about: "This is a mock teacher profile created from dummy data. In a real application, this would be fetched from the database.",
+        tags: foundTeacher.tags || [],
+        is_verified: foundTeacher.isVerified || false,
+        rating: foundTeacher.rating || 0,
+        reviews_count: foundTeacher.reviewsCount || 0,
+        created_at: new Date().toISOString(),
+        profiles: {
+          full_name: foundTeacher.name,
+          email: `${slug.toLowerCase()}@example.com`,
+          avatar_url: `/avatars/avatar${foundTeacher.avatarIndex || 1}.jpg`
         }
-        
-        setTeacher(teacherData || null);
-        
-        // Fetch experiences and education in parallel
-        const [experiencesData, educationsData, reviewsData] = await Promise.all([
-          fetchTeacherExperiences(teacherId),
-          fetchTeacherEducations(teacherId),
-          fetchTeacherReviews(teacherId)
-        ]);
-        
-        setExperiences(experiencesData || []);
-        setEducations(educationsData || []);
-        setReviews(reviewsData || []);
-      } catch (err) {
-        console.error("Error fetching teacher profile:", err);
-        setError("Failed to load teacher profile. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+      });
+    } else {
+      setError("Teacher not found");
     }
     
-    fetchTeacherProfile();
-  }, [teacherId]);
-  
-  const fetchTeacherReviews = async (teacherId: string) => {
-    try {
-      const supabase = createClientComponentClient();
-      const { data, error } = await supabase
-        .from("reviews")
-        .select(`
-          *,
-          reviewer:profiles!reviewer_id (
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq("teacher_id", teacherId)
-        .order("created_at", { ascending: false });
-        
-      if (error) {
-        console.error("Error fetching reviews:", error);
-        return [];
-      }
-      
-      return data;
-    } catch (err) {
-      console.error("Exception fetching reviews:", err);
-      return [];
-    }
-  };
+    setIsLoading(false);
+  }, [slug]);
   
   // Handle page navigation
   const goBack = () => {
@@ -156,7 +115,7 @@ export default function TeacherProfile() {
   const primarySubject = Array.isArray(teacher.subject) && teacher.subject.length > 0 
     ? teacher.subject[0] 
     : "General";
-  const avatarUrl = teacher.profiles?.avatar_url || `/avatars/avatar${(parseInt(teacher.id.slice(-2), 16) % 8) + 1}.jpg`;
+  const avatarUrl = teacher.profiles?.avatar_url || `/avatars/avatar1.jpg`;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -192,7 +151,7 @@ export default function TeacherProfile() {
               )}
             </div>
             
-            <div className="flex-1">
+            <div>
               <div className="flex items-center flex-wrap gap-2">
                 <h1 className="text-2xl font-bold text-gray-900 mr-2">
                   {teacherName}
@@ -231,34 +190,12 @@ export default function TeacherProfile() {
                   {teacher.fee}
                 </div>
               </div>
-              
-              <div className="flex flex-wrap gap-2 mt-4">
-                {teacher.tags && teacher.tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-3 mt-4 md:mt-0">
-              <Button className="w-full md:w-auto">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Contact
-              </Button>
-              <FavouriteButton
-                teacherId={teacher.id}
-                className="w-full md:w-auto"
-              />
             </div>
           </div>
         </div>
       </div>
-
-      {/* Main Content */}
+      
+      {/* Content Tabs */}
       <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <Tabs defaultValue="about">
           <TabsList className="mb-6">
@@ -279,7 +216,6 @@ export default function TeacherProfile() {
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <h3 className="flex items-center text-blue-800 font-medium mb-2">
-                      <Briefcase className="h-4 w-4 mr-2" />
                       Subjects
                     </h3>
                     <ul className="space-y-1">
@@ -297,9 +233,10 @@ export default function TeacherProfile() {
           <TabsContent value="experience">
             <Card>
               <div className="p-6">
-                <TeacherExperienceEducation
-                  teacherId={teacher.id}
-                />
+                <h2 className="text-xl font-semibold mb-4">Experience & Education</h2>
+                <p className="text-gray-600">
+                  This is a mock teacher profile. Experience and education details are not available.
+                </p>
               </div>
             </Card>
           </TabsContent>
@@ -309,42 +246,9 @@ export default function TeacherProfile() {
             <Card>
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Reviews</h2>
-                
-                {reviews.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    No reviews yet. Be the first to leave a review!
-                  </p>
-                ) : (
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="border-b pb-6 last:border-b-0">
-                        <div className="flex items-start">
-                          <Avatar size="md" className="mr-4">
-                            <AvatarImage
-                              src={review.reviewer?.avatar_url || "/avatars/default.jpg"}
-                              alt={review.reviewer?.full_name || "Reviewer"}
-                            />
-                            <AvatarFallback>
-                              <User className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center mb-2">
-                              <p className="font-medium text-gray-900 mr-2">
-                                {review.reviewer?.full_name || "Anonymous"}
-                              </p>
-                              <StarRating rating={review.rating} size="sm" />
-                            </div>
-                            <p className="text-sm text-gray-500 mb-2">
-                              {new Date(review.created_at).toLocaleDateString()}
-                            </p>
-                            <p className="text-gray-700">{review.comment}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-gray-600">
+                  This is a mock teacher profile. Reviews are not available.
+                </p>
               </div>
             </Card>
           </TabsContent>
@@ -352,4 +256,4 @@ export default function TeacherProfile() {
       </div>
     </div>
   );
-}
+} 

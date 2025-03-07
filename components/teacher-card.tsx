@@ -1,30 +1,45 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, CheckCircle, AlertCircle, User } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, User, Star, Heart } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatedContainer, fadeIn } from "@/components/ui/animations";
 import { StarRating } from "@/components/ui/star-rating";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import FavouriteButton from "@/components/favourite-button";
+import type { TeacherProfile, Profile } from "@/lib/supabase";
+import { DummyTeacher } from "@/app/mock-data";
+
+// Helper function to check if a string is a valid UUID
+const isUUID = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};
+
+// Define a more flexible teacher type that can handle both real and dummy data
+type FlexibleTeacher = Partial<TeacherProfile> & {
+  id: string;
+  profiles?: Partial<Profile>;
+  color?: string;
+  featured?: boolean;
+  // Additional fields from dummy data
+  name?: string;
+  subject?: string | string[];
+  location?: string;
+  rating?: number;
+  fee?: string;
+  tags?: string[];
+  is_verified?: boolean;
+  avatarUrl?: string;
+};
 
 interface TeacherCardProps {
-  teacher?: {
-    id: string;
-    name: string;
-    subject: string;
-    location: string;
-    rating: number;
-    reviewsCount: number;
-    fee: string;
-    avatarIndex: number;
-    isVerified?: boolean;
-    tags?: string[];
-    date?: string;
-    color?: string;
-    featured?: boolean;
-  };
+  teacher?: FlexibleTeacher;
   isLoading?: boolean;
 }
 
@@ -70,7 +85,10 @@ const TeacherCard = React.memo(
     const handleClick = React.useCallback(() => {
       if (!teacher?.id) return;
       try {
-        router.push(`/teachers/${teacher.id}`);
+        const path = isUUID(teacher.id) 
+          ? `/teachers/${teacher.id}` 
+          : `/teachers/slug/${teacher.id}`;
+        router.push(path);
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Navigation failed"));
       }
@@ -84,10 +102,26 @@ const TeacherCard = React.memo(
       return <SkeletonCard />;
     }
 
+    // Get the primary subject or default to "General"
+    const primarySubject = Array.isArray(teacher.subject) && teacher.subject.length > 0 
+      ? teacher.subject[0] 
+      : typeof teacher.subject === 'string' ? teacher.subject : "General";
+
+    // Get the teacher name from profiles or use a placeholder
+    const teacherName = teacher.profiles?.full_name || teacher.name || "Teacher";
+
+    // Get the avatar URL or use a default based on teacher ID
+    const avatarUrl = teacher.profiles?.avatar_url || teacher.avatarUrl || `/avatars/avatar${(parseInt(teacher.id.slice(-2), 16) % 8) + 1}.jpg`;
+
+    // Check if the teacher ID is a UUID or a slug
+    const teacherProfilePath = isUUID(teacher.id) 
+      ? `/teachers/${teacher.id}` 
+      : `/teachers/slug/${teacher.id}`;
+
     return (
-      <div
+      <div 
         className={cn(
-          "rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 relative group h-[240px] flex flex-col",
+          "rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 relative group h-auto",
           teacher.color || "bg-white",
           teacher.id && "cursor-pointer hover:scale-[1.01]"
         )}
@@ -110,8 +144,8 @@ const TeacherCard = React.memo(
           <div className="relative w-20 h-20 flex-shrink-0">
             <Avatar size="lg" className="w-full h-full">
               <AvatarImage
-                src={`/avatars/avatar${(teacher.avatarIndex % 8) + 1}.jpg`}
-                alt={teacher.name}
+                src={avatarUrl}
+                alt={teacherName}
               />
               <AvatarFallback>
                 <User className="h-8 w-8 text-gray-400" />
@@ -121,9 +155,9 @@ const TeacherCard = React.memo(
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {teacher.name}
+                {teacherName}
               </h3>
-              {teacher.isVerified && (
+              {teacher.is_verified && (
                 <CheckCircle
                   className="h-4 w-4 text-green-500 flex-shrink-0"
                   aria-label="Verified teacher"
@@ -131,7 +165,7 @@ const TeacherCard = React.memo(
               )}
             </div>
             <p className="text-sm font-medium text-gray-600 mb-1.5">
-              {teacher.subject} Teacher
+              {primarySubject} Teacher
             </p>
             <div className="flex items-center gap-1.5 text-gray-500">
               <MapPin className="h-4 w-4 flex-shrink-0" />
@@ -162,9 +196,9 @@ const TeacherCard = React.memo(
             <div className="flex items-center gap-2">
               {mounted && (
                 <>
-                  <StarRating rating={teacher.rating} size="sm" />
+                  <StarRating rating={teacher.rating || 0} size="sm" />
                   <span className="text-sm font-medium text-gray-700">
-                    {teacher.rating}
+                    {teacher.rating || "New"}
                   </span>
                 </>
               )}
@@ -173,6 +207,34 @@ const TeacherCard = React.memo(
               {teacher.fee}
             </div>
           </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-4 flex justify-between gap-2">
+          <Link href={teacherProfilePath} className="flex-1 block">
+            <Button variant="outline" className="w-full">
+              View Profile
+            </Button>
+          </Link>
+          {isUUID(teacher.id) ? (
+            <FavouriteButton 
+              teacherId={teacher.id} 
+              className="flex-none" 
+            />
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2 flex-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                alert("This is a demo teacher and cannot be added to favourites.");
+              }}
+            >
+              <Heart className="h-4 w-4" />
+              Add to Favourites
+            </Button>
+          )}
         </div>
       </div>
     );

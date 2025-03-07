@@ -14,6 +14,9 @@ export async function GET(request: Request) {
     const subject = searchParams.get("subject");
     const location = searchParams.get("location");
     const minRating = searchParams.get("minRating");
+    const search = searchParams.get("search");
+    const sortField = searchParams.get("sortField") || "created_at";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
     const limit = Math.min(
       MAX_PAGE_SIZE,
@@ -38,6 +41,10 @@ export async function GET(request: Request) {
     if (minRating) {
       countQuery = countQuery.gte("rating", parseFloat(minRating));
     }
+    if (search) {
+      countQuery = countQuery
+        .or(`subject.cs.{${search}},location.ilike.%${search}%`);
+    }
 
     const { count, error: countError } = await countQuery;
 
@@ -58,9 +65,23 @@ export async function GET(request: Request) {
         )
       `
       )
-      .range(offset, offset + limit - 1)
-      .order("created_at", { ascending: false });
+      .range(offset, offset + limit - 1);
 
+    // Apply ordering based on sort parameters
+    const validSortFields = ["created_at", "rating"];
+    const validSortOrders = ["asc", "desc"];
+    
+    const finalSortField = validSortFields.includes(sortField as string) 
+      ? sortField as string 
+      : "created_at";
+      
+    const finalSortOrder = validSortOrders.includes(sortOrder as string) 
+      ? sortOrder as string 
+      : "desc";
+      
+    query = query.order(finalSortField, { ascending: finalSortOrder === "asc" });
+
+    // Apply filters
     if (subject) {
       query = query.contains("subject", [subject]);
     }
@@ -69,6 +90,10 @@ export async function GET(request: Request) {
     }
     if (minRating) {
       query = query.gte("rating", parseFloat(minRating));
+    }
+    if (search) {
+      query = query
+        .or(`subject.cs.{${search}},location.ilike.%${search}%`);
     }
 
     const { data: teachers, error } = await query;

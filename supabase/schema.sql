@@ -45,6 +45,15 @@ create table public.teacher_education (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Favourite teachers table
+create table public.favourite_teachers (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.profiles on delete cascade not null,
+  teacher_id uuid references public.teacher_profiles on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(user_id, teacher_id)
+);
+
 -- Featured teachers and pricing plans
 create table public.pricing_plans (
   id uuid primary key default uuid_generate_v4(),
@@ -92,6 +101,7 @@ alter table public.pricing_plans enable row level security;
 alter table public.featured_teachers enable row level security;
 alter table public.reviews enable row level security;
 alter table public.messages enable row level security;
+alter table public.favourite_teachers enable row level security;
 
 -- Create policies
 -- Profiles: viewable by everyone, but only editable by the owner
@@ -213,6 +223,14 @@ create policy "Users can view their own messages"
 create policy "Users can send messages"
   on public.messages for insert
   with check (auth.uid() = sender_id);
+
+-- Authenticated users can select featured teachers
+create policy "Authenticated users can select featured teachers" on public.featured_teachers for select using (true);
+
+-- Favourite teachers policies
+create policy "Users can view their own favourites" on public.favourite_teachers for select using (auth.uid() = user_id);
+create policy "Users can add to their favourites" on public.favourite_teachers for insert with check (auth.uid() = user_id);
+create policy "Users can remove from their favourites" on public.favourite_teachers for delete using (auth.uid() = user_id);
 
 -- Create functions for computed fields
 create or replace function public.update_teacher_rating()

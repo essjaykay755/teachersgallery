@@ -1,64 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect, useState, useCallback } from "react";
+import { fetchTeachers } from "@/lib/api";
 import type { TeacherProfile } from "@/lib/supabase";
-import { useAuth } from "@/lib/contexts/auth";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import type { PaginatedResponse } from "@/lib/types";
+import TeacherCard from "@/components/teacher-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Search, ArrowDown, ArrowUp, Loader2 } from "lucide-react";
+import debounce from "lodash.debounce";
 
 export default function FindTeachersPage() {
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
-  const supabase = createClientComponentClient();
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalTeachers, setTotalTeachers] = useState(0);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortField, setSortField] = useState<"rating" | "created_at">("rating");
+
+  // Create a debounced search function
+  const debouncedSearch = useCallback(
+    debounce(() => {
+      loadTeachers(true);
+    }, 500),
+    [searchQuery, locationFilter, subjectFilter, sortField, sortOrder]
+  );
 
   useEffect(() => {
-    loadTeachers();
-  }, [searchQuery, locationFilter, subjectFilter]);
+    debouncedSearch();
+    // Cancel the debounce on useEffect cleanup.
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [searchQuery, locationFilter, subjectFilter, sortField, sortOrder, debouncedSearch]);
 
-  async function loadTeachers() {
+  // Effect for pagination changes
+  useEffect(() => {
+    loadTeachers(false);
+  }, [page]);
+
+  async function loadTeachers(resetPage = false) {
+    if (resetPage && page !== 1) {
+      setPage(1);
+      return; // The page change will trigger another load
+    }
+
     setIsLoading(true);
+    setError(null);
+
     try {
-      let query = supabase
-        .from("teacher_profiles")
-        .select(
-          `
-          *,
-          profiles!user_id (
-            full_name,
-            email,
-            avatar_url
-          )
-        `
-        )
-        .eq("is_verified", true)
-        .order("rating", { ascending: false });
+      const response: PaginatedResponse<TeacherProfile> = await fetchTeachers({
+        page,
+        limit: 9,
+        subject: subjectFilter,
+        location: locationFilter,
+        searchQuery,
+      });
 
-      if (locationFilter) {
-        query = query.ilike("location", `%${locationFilter}%`);
-      }
-
-      if (subjectFilter) {
-        query = query.contains("subject", [subjectFilter]);
-      }
-
-      if (searchQuery) {
-        query = query.or(
-          `subject.cs.{${searchQuery}},about.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
-        );
-      }
-
-      const { data } = await query;
-      setTeachers(data || []);
-    } catch (error) {
-      console.error("Error loading teachers:", error);
+      setTeachers(resetPage ? response.data : [...teachers, ...response.data]);
+      setTotalTeachers(response.metadata.total);
+      setHasMore(response.metadata.hasMore);
+    } catch (err) {
+      console.error("Error fetching teachers:", err);
+      setError("Failed to load teachers. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
+
+  const handleLoadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage(page + 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -73,134 +93,117 @@ export default function FindTeachersPage() {
         <div className="mt-8 bg-white shadow rounded-lg p-6">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div>
-              <label
-                htmlFor="search"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Search
-              </label>
-              <input
-                type="text"
-                id="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by subject, description, or tags"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
+              <Label htmlFor="search">Search</Label>
+              <div className="relative mt-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by subject or tags"
+                  className="pl-10"
+                />
+              </div>
             </div>
 
             <div>
-              <label
-                htmlFor="location"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Location
-              </label>
-              <input
-                type="text"
+              <Label htmlFor="location">Location</Label>
+              <Input
                 id="location"
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
                 placeholder="Filter by location"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="subject"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Subject
-              </label>
-              <input
-                type="text"
+              <Label htmlFor="subject">Subject</Label>
+              <Input
                 id="subject"
                 value={subjectFilter}
                 onChange={(e) => setSubjectFilter(e.target.value)}
                 placeholder="Filter by subject"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1"
               />
             </div>
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            <p className="text-center col-span-full text-gray-500">
-              Loading...
+        {error && (
+          <div className="mt-8 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm text-gray-600">
+              {isLoading && page === 1
+                ? "Searching for teachers..."
+                : `Found ${totalTeachers} teachers`}
             </p>
-          ) : teachers.length > 0 ? (
-            teachers.map((teacher) => (
-              <div
-                key={teacher.id}
-                className="bg-white shadow rounded-lg overflow-hidden"
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortField(sortField === "rating" ? "created_at" : "rating")}
               >
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <Avatar size="md">
-                      <AvatarImage
-                        src={teacher.profiles?.avatar_url || "/default-avatar.png"}
-                        alt={teacher.profiles?.full_name || "Teacher"}
-                      />
-                      <AvatarFallback>
-                        <User className="h-6 w-6 text-gray-400" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {teacher.profiles?.full_name}
-                      </h3>
-                      <div className="flex items-center mt-1">
-                        {teacher.rating && (
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600">
-                              {teacher.rating}/5
-                            </span>
-                            <span className="mx-1 text-gray-500">·</span>
-                            <span className="text-sm text-gray-600">
-                              {teacher.reviews_count} reviews
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                Sort by: {sortField === "rating" ? "Rating" : "Newest"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              >
+                {sortOrder === "desc" ? <ArrowDown className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </div>
 
-                  <div className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {teacher.subject.map((subject) => (
-                        <span
-                          key={subject}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                        >
-                          {subject}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600">
-                      {teacher.location}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">{teacher.fee}</p>
-                    <p className="mt-4 text-sm text-gray-600 line-clamp-3">
-                      {teacher.about}
-                    </p>
-                  </div>
-
-                  <div className="mt-6">
-                    <button className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                      Contact Teacher
-                    </button>
-                  </div>
-                </div>
-              </div>
+        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {teachers.map((teacher) => (
+            <TeacherCard
+              key={teacher.id}
+              teacher={teacher}
+              isLoading={false}
+            />
+          ))}
+          
+          {isLoading && page === 1 && (
+            Array.from({ length: 6 }).map((_, index) => (
+              <TeacherCard key={`skeleton-${index}`} isLoading={true} />
             ))
-          ) : (
-            <p className="text-center col-span-full text-gray-500">
-              No teachers found matching your criteria
-            </p>
+          )}
+          
+          {!isLoading && teachers.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500">No teachers found matching your criteria</p>
+            </div>
           )}
         </div>
+
+        {hasMore && (
+          <div className="mt-8 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
+              {isLoading && page > 1 ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                </>
+              ) : (
+                "Load More"
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

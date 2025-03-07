@@ -48,4 +48,22 @@ CREATE POLICY "Parents can update own profile"
 
 CREATE POLICY "Parents can insert own profile"
   ON public.parent_profiles FOR INSERT
-  WITH CHECK (auth.uid() = user_id); 
+  WITH CHECK (auth.uid() = user_id);
+
+# Supabase Commands Reference
+
+# Apply the favourite_teachers migration
+# Run this command in the terminal to apply the migration to your local Supabase instance:
+supabase migration up --db-url postgresql://postgres:postgres@localhost:54322/postgres
+
+# To apply it in a remote (production) environment:
+supabase migration up --db-url "postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres"
+
+# Alternatively, you can run the migration directly through the Supabase Dashboard:
+# 1. Go to your Supabase project
+# 2. Navigate to the SQL Editor
+# 3. Copy the contents of supabase/migrations/20240309_create_favourite_teachers.sql
+# 4. Paste into the SQL Editor and run
+
+# To verify the migration was applied successfully:
+supabase db query "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'favourite_teachers');" --db-url postgresql://postgres:postgres@localhost:54322/postgres 

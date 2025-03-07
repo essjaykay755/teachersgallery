@@ -48,11 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfileData = async (userId: string): Promise<{ profile: Profile | null, error: string | null }> => {
     try {
       console.log(`AuthProvider: Fetching profile data for user ${userId}`);
+      const startTime = Date.now();
+      
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .maybeSingle();
+      
+      const endTime = Date.now();
+      console.log(`AuthProvider: Profile fetch completed in ${endTime - startTime}ms`);
         
       if (error) {
         console.error("Error fetching profile:", error);
@@ -67,12 +72,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Debug raw data
       console.log("AuthProvider: Raw profile data:", JSON.stringify(data));
       console.log("AuthProvider: User type from DB:", data.user_type);
+      console.log("AuthProvider: Avatar URL from DB:", data.avatar_url);
       
       // Clean up avatar_url - ensure it's a valid URL or default avatar
       const avatarUrl = data.avatar_url?.trim();
-      const validAvatarUrl = (avatarUrl && avatarUrl !== "" && !avatarUrl.includes("default-avatar")) 
-        ? avatarUrl 
-        : "/default-avatar.png";
+      
+      // Only use default avatar if the URL is completely missing, empty, or explicitly references the default
+      // Important: Don't override a valid URL with default avatar
+      const validAvatarUrl = (!avatarUrl || avatarUrl === "" || avatarUrl === "@default-avatar.png" || avatarUrl === "/default-avatar.png") 
+        ? "/default-avatar.png" 
+        : avatarUrl; // Keep the original URL if it exists
+      
+      console.log("AuthProvider: Processed avatar URL:", validAvatarUrl);
+      
+      // Create our profile object with the processed avatar URL
+      const processedProfile = {
+        ...data,
+        avatar_url: validAvatarUrl
+      };
       
       // Ensure user_type is set and admin is preserved
       let userType = data.user_type || "unknown";
@@ -82,11 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("AuthProvider: Setting teacher role for subhoj33t@gmail.com");
         
         // For this user, set user_type to teacher if a teacher profile exists
+        const teacherStartTime = Date.now();
         const { data: teacherData, error: teacherError } = await supabase
           .from("teacher_profiles")
           .select("*")
           .eq("user_id", userId)
           .maybeSingle();
+        const teacherEndTime = Date.now();
+        console.log(`AuthProvider: Teacher profile check completed in ${teacherEndTime - teacherStartTime}ms`);
           
         if (teacherError) {
           console.error("Error checking teacher profile:", teacherError);
@@ -96,10 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Update in the database if needed
           if (data.user_type !== "teacher") {
+            const updateStartTime = Date.now();
             const { error: updateError } = await supabase
               .from("profiles")
               .update({ user_type: "teacher" })
               .eq("id", userId);
+            const updateEndTime = Date.now();
+            console.log(`AuthProvider: User type update completed in ${updateEndTime - updateStartTime}ms`);
               
             if (updateError) {
               console.error("Failed to update teacher role:", updateError);
@@ -111,9 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("AuthProvider: Normalized user type:", userType);
       
       const profile = {
-        ...data,
+        ...processedProfile,
         user_type: userType, // Ensure user_type is set explicitly
-        avatar_url: validAvatarUrl
       };
       
       console.log(`AuthProvider: Profile processed for user ${userId}, user_type: ${profile.user_type}, avatar:`, profile.avatar_url);
@@ -152,7 +174,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLastCheckedUserId(null);
       
       // Fetch fresh profile data
+      console.log(`AuthProvider: Starting profile refresh for user ${user.id}`);
+      const startTime = Date.now();
+      
       const { profile: freshProfile, error: fetchError } = await fetchProfileData(user.id);
+      
+      const endTime = Date.now();
+      console.log(`AuthProvider: Profile refresh completed in ${endTime - startTime}ms`);
       
       if (fetchError) {
         console.error("Error refreshing profile:", fetchError);
@@ -160,11 +188,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.log("AuthProvider: Profile refreshed successfully:", {
           hasProfile: !!freshProfile,
-          userType: freshProfile?.user_type
+          userType: freshProfile?.user_type,
+          refreshTime: endTime - startTime
         });
         setProfile(freshProfile);
         setError(null);
       }
+    } else {
+      console.warn("AuthProvider: Cannot refresh profile - no user logged in");
     }
   };
 

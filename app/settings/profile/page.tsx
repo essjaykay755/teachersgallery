@@ -72,28 +72,44 @@ export default function ProfileSettings() {
   // Load profile data when component mounts
   useEffect(() => {
     if (profile) {
+      console.log("Initializing profile form with profile data:", {
+        id: profile.id,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url
+      });
+      
       // Split full name into first and last name
       const nameParts = profile.full_name.split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
+      
+      // Set avatar URL from profile if it exists and isn't explicitly the default avatar
+      if (profile.avatar_url && 
+          profile.avatar_url !== "/default-avatar.png" && 
+          profile.avatar_url !== "@default-avatar.png") {
+        console.log("Setting avatar URL from profile:", profile.avatar_url);
+        setAvatarUrl(profile.avatar_url);
+      } else {
+        console.log("No custom avatar URL found in profile, using default");
+      }
       
       form.reset({
         firstName,
         lastName,
         email: profile.email || user?.email || "",
         phone: profile.phone || "",
+        grade: studentProfile?.grade || "",
+        interests: studentProfile?.interests || [],
+        childrenCount: parentProfile?.children_count || 1,
+        childrenGrades: parentProfile?.children_grades || [],
       });
 
-      setAvatarUrl(profile.avatar_url || null);
-
-      // Load type-specific profile data
-      if (profile.user_type === "student") {
-        loadStudentProfile();
-      } else if (profile.user_type === "parent") {
-        loadParentProfile();
+      // Load interests if available
+      if (studentProfile?.interests) {
+        setInterests(studentProfile.interests);
       }
     }
-  }, [profile, user, form]);
+  }, [profile, studentProfile, parentProfile, user, form]);
 
   const loadStudentProfile = async () => {
     if (!user) return;
@@ -142,15 +158,46 @@ export default function ProfileSettings() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      // Create a preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    // Warn about large file sizes
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Large file detected",
+        description: "Your image is larger than 2MB. It will be compressed automatically, but upload may take longer.",
+        variant: "default"
+      });
+    }
+    
+    // Store the file for upload
+    setAvatarFile(file);
+    console.log("Avatar file selected:", file.name, file.type, `${(file.size / 1024).toFixed(2)}KB`);
+    
+    // Create a preview URL with timestamp to prevent caching issues
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const previewUrl = reader.result as string;
+      console.log("Setting avatar preview URL");
+      
+      // Clear any existing avatar URL first (to reset state)
+      setAvatarUrl(null);
+      
+      // Set the new avatar URL after a tiny delay to ensure state reset
+      setTimeout(() => {
+        setAvatarUrl(previewUrl);
+      }, 50);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddInterest = () => {
@@ -172,36 +219,86 @@ export default function ProfileSettings() {
     if (!user || !profile) return;
 
     setIsLoading(true);
+    
     try {
-      // Upload avatar if changed
+      // Upload avatar if changed - handle this first and separately
       let finalAvatarUrl = profile.avatar_url || null;
+      
       if (avatarFile) {
-        setIsUploading(true);
-        const result = await uploadAvatar(avatarFile, user.id);
-        setIsUploading(false);
-        
-        if ('error' in result) {
-          throw new Error(`Failed to upload avatar: ${result.error}`);
+        try {
+          setIsUploading(true);
+          console.log("Uploading avatar file:", avatarFile.name, `(${(avatarFile.size / 1024).toFixed(2)}KB)`);
+          
+          // Set a timeout for the upload operation
+          const uploadTimeout = 30000; // 30 seconds
+          const uploadPromise = uploadAvatar(avatarFile, user.id);
+          
+          // Create a promise that rejects after the timeout
+          const timeoutPromise = new Promise<{ error: string }>((_, reject) => {
+            setTimeout(() => reject(new Error("Avatar upload timed out")), uploadTimeout);
+          });
+          
+          // Race the upload against the timeout
+          const result = await Promise.race([uploadPromise, timeoutPromise])
+            .catch(error => {
+              console.error("Avatar upload failed:", error.message);
+              return { error: "Upload timed out. Please try again with a smaller image." };
+            });
+          
+          if ('error' in result) {
+            // If there's an upload error, show it but continue with the profile update
+            console.error("Avatar upload error:", result.error);
+            toast({
+              title: "Avatar upload failed",
+              description: result.error,
+              variant: "destructive",
+            });
+            // Continue without updating the avatar
+          } else {
+            finalAvatarUrl = result.url;
+            console.log("Avatar uploaded successfully, URL:", finalAvatarUrl);
+          }
+        } catch (uploadError) {
+          console.error("Avatar upload exception:", uploadError);
+          // Show toast but continue with the profile update
+          toast({
+            title: "Avatar upload failed",
+            description: "Your profile will be updated without the new avatar",
+            variant: "destructive",
+          });
+          // Continue without updating the avatar
+        } finally {
+          setIsUploading(false);
         }
-        
-        finalAvatarUrl = result.url;
       }
 
       // Combine first and last name
       const fullName = `${data.firstName} ${data.lastName}`.trim();
 
+      // Prepare profile update data - only include avatar_url if it exists
+      const profileUpdate: Record<string, any> = {
+        full_name: fullName,
+        email: data.email || user.email,
+        phone: data.phone,
+      };
+      
+      // Only include avatar_url in the update if it was successfully uploaded
+      if (finalAvatarUrl && finalAvatarUrl !== profile.avatar_url) {
+        profileUpdate.avatar_url = finalAvatarUrl;
+      }
+      
+      console.log("Updating profile with data:", profileUpdate);
+
       // Update base profile
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({
-          full_name: fullName,
-          email: data.email || user.email,
-          phone: data.phone,
-          avatar_url: finalAvatarUrl,
-        })
+        .update(profileUpdate)
         .eq("id", user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
 
       // Update type-specific profile
       if (profile.user_type === "student") {
@@ -226,8 +323,15 @@ export default function ProfileSettings() {
         if (parentError) throw parentError;
       }
 
-      // Refresh profile data in context
+      // Refresh profile data in context and then manually update the avatar URL in state
+      // to ensure it's consistent with what we just uploaded
       await refreshProfile();
+      
+      // If we successfully uploaded a new avatar, make sure our local state reflects that
+      if (finalAvatarUrl && finalAvatarUrl !== profile.avatar_url) {
+        setAvatarUrl(finalAvatarUrl);
+        console.log("Updated local avatar URL state to:", finalAvatarUrl);
+      }
 
       toast({
         title: "Profile updated",
@@ -261,6 +365,7 @@ export default function ProfileSettings() {
               <FormLabel>Profile Picture</FormLabel>
               <div className="flex items-center gap-5">
                 <AvatarWithTypeIndicator
+                  key={avatarUrl || 'default'}
                   size="xl"
                   className="w-20 h-20"
                   src={avatarUrl || ""}

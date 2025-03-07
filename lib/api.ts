@@ -167,3 +167,73 @@ export async function deleteTeacherEducation(
     return false;
   }
 }
+
+/**
+ * Fetches a paginated list of teachers with filters
+ * @param page The page number to fetch (default 1)
+ * @param limit The number of items per page (default 10)
+ * @param subject Optional filter for subject
+ * @param location Optional filter for location
+ * @param minRating Optional filter for minimum rating
+ * @param searchQuery Optional search query
+ * @param sortField Optional field to sort by (rating or created_at)
+ * @param sortOrder Optional sort order (asc or desc)
+ * @returns Promise with the paginated teachers data and metadata
+ */
+export async function fetchTeachers({
+  page = 1,
+  limit = 10,
+  subject = "",
+  location = "",
+  minRating = "",
+  searchQuery = "",
+  sortField = "created_at",
+  sortOrder = "desc",
+} = {}) {
+  try {
+    let url = `/api/teachers?page=${page}&limit=${limit}`;
+    
+    if (subject) url += `&subject=${encodeURIComponent(subject)}`;
+    if (location) url += `&location=${encodeURIComponent(location)}`;
+    if (minRating) url += `&minRating=${minRating}`;
+    if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+    if (sortField) url += `&sortField=${sortField}`;
+    if (sortOrder) url += `&sortOrder=${sortOrder}`;
+    
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Error fetching teachers:", error.error || response.statusText);
+      return { data: [], metadata: { total: 0, page, limit, hasMore: false } };
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Exception fetching teachers:", error);
+    return { data: [], metadata: { total: 0, page, limit, hasMore: false } };
+  }
+}
+
+/**
+ * Fetches a single teacher's profile by ID
+ * @param id The teacher ID to fetch
+ * @returns Promise with the teacher profile data or null if not found
+ */
+export async function fetchTeacherProfile(id: string) {
+  try {
+    const response = await fetch(`/api/teachers/${id}`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Error fetching teacher profile:", error.error || response.statusText);
+      return null;
+    }
+
+    const { data } = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Exception fetching teacher profile:", error);
+    return null;
+  }
+}

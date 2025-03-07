@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,117 +17,71 @@ import {
   GraduationCap,
   SlidersHorizontal,
   X,
+  Loader2,
 } from "lucide-react";
 import { AnimatedContainer, slideRight } from "@/components/ui/animations";
+import { fetchTeachers } from "@/lib/api";
+import type { TeacherProfile } from "@/lib/supabase";
+import type { PaginatedResponse } from "@/lib/types";
 
-const dummyTeachers = [
-  {
-    id: "priya-sharma",
-    name: "Priya Sharma",
-    subject: "Mathematics",
-    location: "Mumbai, Maharashtra",
-    rating: 4.8,
-    reviewsCount: 150,
-    fee: "₹800/hr",
-    avatarIndex: 1,
-    isVerified: true,
-    tags: ["Online", "10+ years", "High School", "IIT-JEE"],
-    date: "20 May, 2023",
-    color: "bg-blue-50",
-    featured: true,
-  },
-  {
-    id: "rajesh-kumar",
-    name: "Rajesh Kumar",
-    subject: "Physics",
-    location: "Delhi, NCR",
-    rating: 4.8,
-    reviewsCount: 120,
-    fee: "₹600/hr",
-    avatarIndex: 2,
-    isVerified: true,
-    tags: ["Offline", "8 years", "CBSE", "NEET"],
-    date: "4 Feb, 2023",
-    color: "bg-green-50",
-    featured: true,
-  },
-  {
-    id: "anjali-desai",
-    name: "Anjali Desai",
-    subject: "English Literature",
-    location: "Bangalore, Karnataka",
-    rating: 4.8,
-    reviewsCount: 90,
-    fee: "₹500/hr",
-    avatarIndex: 3,
-    isVerified: true,
-    tags: ["Hybrid", "5 years", "ICSE", "Primary"],
-    date: "29 Jan, 2023",
-    color: "bg-purple-50",
-  },
-  {
-    id: "debanjan-chakraborty",
-    name: "Debanjan Chakraborty",
-    subject: "Chemistry",
-    location: "Salt Lake, Kolkata",
-    rating: 4.8,
-    reviewsCount: 110,
-    fee: "₹650/hr",
-    avatarIndex: 4,
-    isVerified: true,
-    tags: ["Offline", "12 years", "WBCHSE", "NEET"],
-    date: "15 Mar, 2023",
-    color: "bg-orange-50",
-  },
-  {
-    id: "srabanti-mukherjee",
-    name: "Srabanti Mukherjee",
-    subject: "Bengali Literature",
-    location: "Howrah, West Bengal",
-    rating: 4.8,
-    reviewsCount: 80,
-    fee: "₹450/hr",
-    avatarIndex: 5,
-    isVerified: true,
-    tags: ["Hybrid", "7 years", "WBBSE", "HS"],
-    date: "8 Apr, 2023",
-    color: "bg-pink-50",
-  },
-  {
-    id: "soumitra-banerjee",
-    name: "Soumitra Banerjee",
-    subject: "Mathematics",
-    location: "Barasat, West Bengal",
-    rating: 4.8,
-    reviewsCount: 130,
-    fee: "₹550/hr",
-    avatarIndex: 6,
-    isVerified: true,
-    tags: ["Online", "15 years", "WBCHSE", "JEE"],
-    date: "12 Mar, 2023",
-    color: "bg-indigo-50",
-  },
-  {
-    id: "tanushree-das",
-    name: "Tanushree Das",
-    subject: "Physics",
-    location: "Dum Dum, Kolkata",
-    rating: 4.8,
-    reviewsCount: 95,
-    fee: "₹600/hr",
-    avatarIndex: 7,
-    isVerified: true,
-    tags: ["Hybrid", "9 years", "WBCHSE", "NEET"],
-    date: "25 Feb, 2023",
-    color: "bg-rose-50",
-  },
-];
+// Fallback to dummy data only if no real data is available
+import { dummyTeachers } from "@/app/mock-data";
 
 export default function Home() {
   const [feeRange, setFeeRange] = useState([500, 5000]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const totalPages = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = 5; // This will be updated when using real pagination
+
+  // New state for real teacher data
+  const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalTeachers, setTotalTeachers] = useState(0);
+  const [sortField, setSortField] = useState<"rating" | "created_at">("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Fetch teachers on component mount or when sort/page changes
+  useEffect(() => {
+    fetchRealTeachers();
+  }, [currentPage, sortField, sortOrder]);
+
+  // Function to fetch real teacher data
+  async function fetchRealTeachers() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response: PaginatedResponse<TeacherProfile> = await fetchTeachers({
+        page: currentPage,
+        limit: 6, // Show 6 teachers on the home page (2 rows of 3)
+        sortField,
+        sortOrder,
+      });
+
+      setTeachers(response.data);
+      setTotalTeachers(response.metadata.total);
+    } catch (err) {
+      console.error("Error fetching teachers:", err);
+      setError("Failed to load teachers. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Handle sort change
+  const handleSortChange = (value: string) => {
+    if (value === "latest") {
+      setSortField("created_at");
+      setSortOrder("desc");
+    } else if (value === "oldest") {
+      setSortField("created_at");
+      setSortOrder("asc");
+    } else if (value === "rating") {
+      setSortField("rating");
+      setSortOrder("desc");
+    }
+  };
 
   const FiltersContent = () => (
     <div className="space-y-6">
@@ -344,19 +298,22 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold">All Teachers</h2>
                 <span className="rounded-full bg-gray-100 px-3 py-0.5 text-sm">
-                  386
+                  {totalTeachers || 0}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Sort by:</span>
-                <Select defaultValue="latest">
+                <Select 
+                  defaultValue="latest" 
+                  onValueChange={handleSortChange}
+                >
                   <SelectTrigger className="w-[180px] border-gray-200">
                     <SelectValue placeholder="Last updated" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="latest">Last updated</SelectItem>
-                    <SelectItem value="experience">Experience</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="latest">Newest first</SelectItem>
+                    <SelectItem value="oldest">Oldest first</SelectItem>
+                    <SelectItem value="rating">Highest rated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -364,9 +321,42 @@ export default function Home() {
 
             {/* Teachers Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {dummyTeachers.map((teacher) => (
-                <TeacherCard key={teacher.id} teacher={teacher} />
-              ))}
+              {isLoading ? (
+                // Show skeletons while loading
+                Array.from({ length: 6 }).map((_, index) => (
+                  <TeacherCard key={`skeleton-${index}`} isLoading={true} />
+                ))
+              ) : error ? (
+                // Show error message
+                <div className="col-span-full bg-red-50 p-6 text-center rounded-lg border border-red-200">
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fetchRealTeachers()}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : teachers.length > 0 ? (
+                // Show real teachers from database
+                teachers.map((teacher) => (
+                  <TeacherCard key={teacher.id} teacher={teacher} />
+                ))
+              ) : (
+                // Fallback to dummy teachers if no real data available
+                dummyTeachers.map((teacher) => {
+                  const transformedTeacher = {
+                    ...teacher,
+                    avatarUrl: `/avatars/avatar${teacher.avatarIndex}.jpg`,
+                    is_verified: teacher.isVerified,
+                    subject: [teacher.subject]
+                  };
+                  
+                  return (
+                    <TeacherCard key={teacher.id} teacher={transformedTeacher} />
+                  );
+                })
+              )}
             </div>
 
             {/* Pagination */}
@@ -375,19 +365,20 @@ export default function Home() {
                 variant="outline"
                 size="default"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isLoading}
                 className="flex items-center gap-2 h-10 px-4 transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
 
+              {/* Page numbers */}
               <div className="flex items-center gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                {Array.from({ length: Math.max(1, Math.ceil(totalTeachers / 6)) }, (_, i) => i + 1)
                   .filter((page) => {
                     return (
                       page === 1 ||
-                      page === totalPages ||
+                      page === Math.ceil(totalTeachers / 6) ||
                       Math.abs(currentPage - page) <= 1
                     );
                   })
@@ -400,6 +391,7 @@ export default function Home() {
                         variant={currentPage === page ? "default" : "outline"}
                         size="default"
                         onClick={() => setCurrentPage(page)}
+                        disabled={isLoading}
                         className="h-10 min-w-[40px] transition-colors"
                       >
                         {page}
@@ -411,14 +403,18 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="default"
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= Math.ceil(totalTeachers / 6) || isLoading}
                 className="flex items-center gap-2 h-10 px-4 transition-colors"
               >
-                Next
-                <ChevronRight className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <>
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
