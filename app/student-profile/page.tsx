@@ -23,6 +23,7 @@ export default function StudentProfilePage() {
   const [grade, setGrade] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState("");
+  const [gender, setGender] = useState<"male" | "female">(profile?.gender || "male");
   
   useEffect(() => {
     setIsClient(true);
@@ -78,6 +79,22 @@ export default function StudentProfilePage() {
     try {
       setIsLoading(true);
       const supabase = createClientComponentClient();
+      
+      // Update the main profile with gender, but continue if it fails
+      try {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ gender })
+          .eq("id", user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile gender:", profileError);
+          // Don't throw the error, just log it and continue
+        }
+      } catch (genderError) {
+        console.error("Failed to update gender, continuing with rest of profile:", genderError);
+        // Continue with rest of profile update
+      }
       
       const updateData = {
         grade,
@@ -139,6 +156,19 @@ export default function StudentProfilePage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={gender} onValueChange={(value: "male" | "female") => setGender(value)} required>
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Select your gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="grade">Current Grade/Class</Label>
                 <Select value={grade} onValueChange={setGrade} required>

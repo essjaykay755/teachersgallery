@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +31,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { TeacherProfile, TeacherExperience, TeacherEducation, Review } from "@/lib/supabase";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import FavouriteButton from "@/components/favourite-button";
-import { fetchTeacherExperiences, fetchTeacherEducations } from "@/lib/api";
+import { fetchTeacherProfile } from "@/lib/api";
 
 export default function TeacherProfile() {
   const router = useRouter();
@@ -44,106 +44,190 @@ export default function TeacherProfile() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeoutWarning, setTimeoutWarning] = useState(false);
 
-  // Add a timeout for the loading state
+  // Create a reference for tracking if the component is mounted
+  const isMountedRef = useRef(true);
+  
+  // Improved timeout mechanism with warning and escalation
   useEffect(() => {
-    // Set a timeout to handle loading that takes too long
-    const timeoutId = setTimeout(() => {
-      if (isLoading) {
-        console.error("Loading timeout for teacher profile:", teacherId);
-        setError("Loading timed out. Please try again.");
-        setIsLoading(false);
-      }
-    }, 15000); // 15 seconds timeout
+    let warningTimeoutId: NodeJS.Timeout | null = null;
+    let errorTimeoutId: NodeJS.Timeout | null = null;
     
-    return () => clearTimeout(timeoutId);
+    if (isLoading) {
+      // First timeout - just show a warning after 10 seconds
+      warningTimeoutId = setTimeout(() => {
+        if (isMountedRef.current && isLoading) {
+          console.log("Profile taking longer than expected to load:", teacherId);
+          setTimeoutWarning(true);
+        }
+      }, 10000);
+      
+      // Second timeout - show error after 45 seconds (increased from 30s to match API timeout)
+      errorTimeoutId = setTimeout(() => {
+        if (isMountedRef.current && isLoading) {
+          console.error("Loading timeout for teacher profile:", teacherId);
+          setError("Loading timed out. The server is taking too long to respond. Please try again later or contact support if the issue persists.");
+          setIsLoading(false);
+        }
+      }, 45000);
+    }
+    
+    return () => {
+      // Clean up both timeouts on unmount or when loading state changes
+      if (warningTimeoutId) clearTimeout(warningTimeoutId);
+      if (errorTimeoutId) clearTimeout(errorTimeoutId);
+    };
   }, [isLoading, teacherId]);
 
+  // Set isMounted to false when component unmounts
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Enhanced fetch with better error handling and progress tracking
   useEffect(() => {
     if (!teacherId) return;
     
-    async function fetchTeacherProfile() {
+    async function fetchTeacherData() {
+      if (!isMountedRef.current) return;
+      
       setIsLoading(true);
       setError(null);
+      setTimeoutWarning(false);
       
       try {
-        console.log("Fetching teacher profile for ID:", teacherId);
-        const supabase = createClientComponentClient();
+        console.log("Fetching teacher data for ID:", teacherId);
         
-        // Fetch teacher profile
-        const { data: teacherData, error: teacherError } = await supabase
-          .from("teacher_profiles")
-          .select(`
-            *,
-            profiles!user_id (
-              full_name,
-              email,
-              avatar_url
-            )
-          `)
-          .eq("id", teacherId)
-          .single();
-          
-        if (teacherError) {
-          console.error("Supabase error fetching teacher:", teacherError);
-          throw new Error(teacherError.message);
-        }
+        // Use the API utility instead of direct Supabase call for better error handling
+        const teacherData = await fetchTeacherProfile(teacherId);
         
         if (!teacherData) {
           console.error("No teacher data found for ID:", teacherId);
-          throw new Error("Teacher not found");
+          throw new Error("Teacher not found. Please check the URL and try again.");
         }
         
         console.log("Teacher data received:", teacherData);
-        setTeacher(teacherData);
         
-        // Fetch experiences and education in parallel
-        const [experiencesData, educationsData, reviewsData] = await Promise.all([
-          fetchTeacherExperiences(teacherId),
-          fetchTeacherEducations(teacherId),
-          fetchTeacherReviews(teacherId)
-        ]);
+        // Update state as soon as we have the primary data
+        if (isMountedRef.current) {
+          setTeacher(teacherData);
+        }
         
-        setExperiences(experiencesData || []);
-        setEducations(educationsData || []);
-        setReviews(reviewsData || []);
+        // Now fetch the additional data (experiences, education, reviews)
+        const supabase = createClientComponentClient();
+        
+        // Create retry function for better reliability
+        const fetchWithRetry = async (fetchFn: () => Promise<any>, retries = 2, label: string) => {
+          let lastError;
+          for (let i = 0; i <= retries; i++) {
+            try {
+              if (i > 0) console.log(`Retry attempt ${i} for ${label}`);
+              return await fetchFn();
+            } catch (err) {
+              console.warn(`Attempt ${i+1} failed for ${label}:`, err);
+              lastError = err;
+              // Small delay before retry
+              if (i < retries) await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+          console.error(`All ${retries + 1} attempts failed for ${label}`);
+          throw lastError;
+        };
+        
+        // Fetch experiences, education, and reviews in parallel with retry logic
+        const fetchExperiences = () => fetchWithRetry(async () => {
+          const { data, error } = await supabase
+            .from("teacher_experience")
+            .select("*")
+            .eq("teacher_id", teacherId)
+            .order("created_at", { ascending: false });
+            
+          if (error) throw error;
+          return data || [];
+        }, 1, "experiences");
+        
+        const fetchEducations = () => fetchWithRetry(async () => {
+          const { data, error } = await supabase
+            .from("teacher_education")
+            .select("*")
+            .eq("teacher_id", teacherId)
+            .order("created_at", { ascending: false });
+            
+          if (error) throw error;
+          return data || [];
+        }, 1, "educations");
+        
+        const fetchReviews = () => fetchWithRetry(async () => {
+          const { data, error } = await supabase
+            .from("reviews")
+            .select(`
+              *,
+              reviewer:profiles!reviewer_id (
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq("teacher_id", teacherId)
+            .order("created_at", { ascending: false });
+            
+          if (error) throw error;
+          return data || [];
+        }, 1, "reviews");
+        
+        // Fetch all secondary data in parallel 
+        if (isMountedRef.current) {
+          try {
+            const results = await Promise.allSettled([
+              fetchExperiences(),
+              fetchEducations(),
+              fetchReviews()
+            ]);
+            
+            // Process results even if some promises were rejected
+            if (isMountedRef.current) {
+              const [experiencesResult, educationsResult, reviewsResult] = results;
+              
+              if (experiencesResult.status === 'fulfilled') {
+                setExperiences(experiencesResult.value);
+              }
+              
+              if (educationsResult.status === 'fulfilled') {
+                setEducations(educationsResult.value);
+              }
+              
+              if (reviewsResult.status === 'fulfilled') {
+                setReviews(reviewsResult.value);
+              }
+            }
+          } catch (err) {
+            console.warn("Error fetching secondary data:", err);
+            // We don't fail the whole page load for secondary data errors
+          } finally {
+            if (isMountedRef.current) {
+              setIsLoading(false);
+            }
+          }
+        }
       } catch (err) {
         console.error("Error fetching teacher profile:", err);
-        setError("Failed to load teacher profile. Please try again.");
-      } finally {
-        setIsLoading(false);
+        
+        // Only update state if still mounted
+        if (isMountedRef.current) {
+          const errorMessage = err instanceof Error 
+            ? err.message 
+            : "Failed to load teacher profile. Please try again.";
+            
+          setError(errorMessage);
+          setIsLoading(false);
+        }
       }
     }
     
-    fetchTeacherProfile();
+    fetchTeacherData();
   }, [teacherId]);
-  
-  const fetchTeacherReviews = async (teacherId: string) => {
-    try {
-      const supabase = createClientComponentClient();
-      const { data, error } = await supabase
-        .from("reviews")
-        .select(`
-          *,
-          reviewer:profiles!reviewer_id (
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq("teacher_id", teacherId)
-        .order("created_at", { ascending: false });
-        
-      if (error) {
-        console.error("Error fetching reviews:", error);
-        return [];
-      }
-      
-      return data;
-    } catch (err) {
-      console.error("Exception fetching reviews:", err);
-      return [];
-    }
-  };
   
   // Handle page navigation
   const goBack = () => {
@@ -155,6 +239,14 @@ export default function TeacherProfile() {
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
         <p className="text-gray-600">Loading teacher profile...</p>
+        
+        {timeoutWarning && (
+          <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-md max-w-md text-center">
+            <p className="font-medium">This is taking longer than expected.</p>
+            <p className="text-sm mt-1">We're still trying to load the profile. Please wait a moment...</p>
+            <p className="text-xs mt-2 text-yellow-600">Profile ID: {teacherId}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -165,7 +257,7 @@ export default function TeacherProfile() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-red-700 mb-2">Error Loading Profile</h2>
-          <p className="text-red-600 mb-6">{error || "Teacher not found"}</p>
+          <p className="text-red-600 mb-6">{error || "Teacher profile not found"}</p>
           <Button onClick={goBack} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
           </Button>

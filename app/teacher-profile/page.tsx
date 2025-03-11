@@ -39,7 +39,8 @@ export default function TeacherProfilePage() {
     availability: [] as string[],
     newAvailability: "",
     teaching_format: "both", // online, in-person, both
-    education: "" 
+    education: "",
+    gender: (profile?.gender || "male") as "male" | "female"
   });
 
   // Add debug logging for profile data
@@ -98,7 +99,8 @@ export default function TeacherProfilePage() {
           teaching_style: data.teaching_style || "",
           availability: data.availability ? Array.isArray(data.availability) ? data.availability : [data.availability] : [],
           teaching_format: data.teaching_format || "both",
-          education: data.education || ""
+          education: data.education || "",
+          gender: data.gender || "male"
         });
       } else {
         console.log("TeacherProfilePage: No existing teacher profile found");
@@ -178,19 +180,85 @@ export default function TeacherProfilePage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return { error: new Error("No user found") };
+    if (!user) {
+      console.error("Cannot save profile: No user logged in");
+      toast({
+        title: "Error",
+        description: "You must be logged in to save your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Add a timeout to prevent infinite loading
+    const saveTimeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        toast({
+          title: "Timeout",
+          description: "Profile save operation timed out. Please try again or contact support.",
+          variant: "destructive",
+        });
+      }
+    }, 15000); // 15 second timeout
     
     try {
-      console.log("TeacherProfilePage: Saving profile with data:", {
-        userId: user.id,
-        formData: teacherFormData,
-        hasExistingProfile: !!teacherProfile,
-        teacherProfileId: teacherProfile?.id
-      });
-      
       const supabase = createClientComponentClient();
+      console.log("Updating profile with gender:", teacherFormData.gender);
 
-      // First check if profile exists
+      // First try to update the gender in the main profile table
+      try {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ 
+            gender: teacherFormData.gender,
+            // Only include updated_at if it doesn't cause errors
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile gender:", profileError);
+          // If the error is about the updated_at column, try again without it
+          if (profileError.message.includes("updated_at") || profileError.message.includes("column")) {
+            const { error: retryError } = await supabase
+              .from("profiles")
+              .update({ gender: teacherFormData.gender })
+              .eq("id", user.id);
+              
+            if (retryError) {
+              console.error("Error on retry update profile gender:", retryError);
+              toast({
+                title: "Warning",
+                description: "Could not update gender preference. Other changes will be saved.",
+                variant: "default",
+              });
+            } else {
+              console.log("Gender updated successfully on retry");
+            }
+          } else {
+            toast({
+              title: "Warning",
+              description: "Could not update gender preference. Other changes will be saved.",
+              variant: "default",
+            });
+          }
+        } else {
+          console.log("Gender updated successfully");
+        }
+      } catch (genderError) {
+        console.error("Failed to update gender, continuing with rest of profile:", genderError);
+        // Notify the user but continue
+        toast({
+          title: "Warning",
+          description: "Could not update gender preference. Other changes will be saved.",
+          variant: "default",
+        });
+      }
+
+      // Check if the teacher profile exists
       const { data: existingProfile, error: checkError } = await supabase
         .from("teacher_profiles")
         .select("id")
@@ -199,7 +267,14 @@ export default function TeacherProfilePage() {
 
       if (checkError && checkError.code !== "PGRST116") {
         console.error("Error checking for existing profile:", checkError);
-        return { error: new Error(checkError.message) };
+        toast({
+          title: "Error",
+          description: "Failed to check for existing profile. Please try again.",
+          variant: "destructive",
+        });
+        clearTimeout(saveTimeout);
+        setIsLoading(false);
+        return;
       }
 
       const profileExists = !!existingProfile;
@@ -212,7 +287,7 @@ export default function TeacherProfilePage() {
         fee: teacherFormData.fee,
         about: teacherFormData.about,
         tags: teacherFormData.tags,
-        is_listed: teacherFormData.is_listed,
+        is_listed: teacherFormData.is_listed
       };
 
       // Additional fields that might not exist yet
@@ -222,8 +297,10 @@ export default function TeacherProfilePage() {
         teaching_style: teacherFormData.teaching_style,
         availability: teacherFormData.availability,
         teaching_format: teacherFormData.teaching_format,
-        education: teacherFormData.education
+        education: teacherFormData.education,
       };
+      
+      let saveSuccess = false;
       
       if (profileExists) {
         // Update existing profile
@@ -237,27 +314,70 @@ export default function TeacherProfilePage() {
             
           if (error) {
             console.log("Full update failed, trying with base fields only:", error);
-            // If that fails, try with just the base fields
-            const { error: baseError } = await supabase
-              .from("teacher_profiles")
-              .update(baseUpdateData)
-              .eq("user_id", user.id);
-              
-            if (baseError) {
-              console.error("Error updating teacher profile with base fields:", baseError);
-              return { error: new Error(baseError.message) };
-            }
             
-            // Show a warning toast that some fields couldn't be saved
-            toast({
-              title: "Partial Update",
-              description: "Some new fields couldn't be saved. Please contact support if this persists.",
-              variant: "default",
-            });
+            // If the error is about is_listed, try without it
+            if (error.message && error.message.includes("is_listed")) {
+              console.log("Error about is_listed, trying without this field");
+              // Try without is_listed by creating a new object without it
+              const { is_listed, ...dataWithoutIsListed } = { ...baseUpdateData, ...additionalData };
+              
+              const { error: updatedError } = await supabase
+                .from("teacher_profiles")
+                .update(dataWithoutIsListed)
+                .eq("user_id", user.id);
+                
+              if (updatedError) {
+                console.error("Error updating without is_listed:", updatedError);
+                // If still fails, try with just the base fields
+                const { error: baseError } = await supabase
+                  .from("teacher_profiles")
+                  .update(baseUpdateData)
+                  .eq("user_id", user.id);
+                  
+                if (baseError) {
+                  console.error("Error updating teacher profile with base fields:", baseError);
+                  toast({
+                    title: "Error",
+                    description: "Failed to update profile. Please try again.",
+                    variant: "destructive",
+                  });
+                  return;
+                } else {
+                  saveSuccess = true;
+                }
+              } else {
+                saveSuccess = true;
+              }
+            } else {
+              // If error is not about is_listed, try with just the base fields
+              const { error: baseError } = await supabase
+                .from("teacher_profiles")
+                .update(baseUpdateData)
+                .eq("user_id", user.id);
+                
+              if (baseError) {
+                console.error("Error updating teacher profile with base fields:", baseError);
+                toast({
+                  title: "Error",
+                  description: "Failed to update profile. Please try again.",
+                  variant: "destructive",
+                });
+                return;
+              } else {
+                saveSuccess = true;
+              }
+            }
+          } else {
+            saveSuccess = true;
           }
         } catch (error) {
           console.error("Error updating teacher profile:", error);
-          return { error: error instanceof Error ? error : new Error("Failed to update profile") };
+          toast({
+            title: "Error",
+            description: "Failed to update profile. Please try again.",
+            variant: "destructive",
+          });
+          return;
         }
       } else {
         // Create new profile
@@ -284,7 +404,12 @@ export default function TeacherProfilePage() {
               
             if (baseError) {
               console.error("Error creating teacher profile with base fields:", baseError);
-              return { error: new Error(baseError.message) };
+              toast({
+                title: "Error",
+                description: "Failed to create profile. Please try again.",
+                variant: "destructive",
+              });
+              return;
             }
             
             // Show a warning toast that some fields couldn't be saved
@@ -293,21 +418,44 @@ export default function TeacherProfilePage() {
               description: "Some new fields couldn't be saved. Please contact support if this persists.",
               variant: "default",
             });
+            saveSuccess = true;
+          } else {
+            saveSuccess = true;
+            toast({
+              title: "Success",
+              description: "Teacher profile created successfully!",
+              variant: "default",
+            });
           }
         } catch (error) {
           console.error("Error creating teacher profile:", error);
-          return { error: error instanceof Error ? error : new Error("Failed to create profile") };
+          toast({
+            title: "Error",
+            description: "Failed to create profile. Please try again.",
+            variant: "destructive",
+          });
+          return;
         }
       }
-      
-      // After successful save, refresh the base profile to ensure it's up to date
-      await refreshProfile();
-      
-      console.log("TeacherProfilePage: Profile saved successfully");
-      return { error: null };
+
+      // If we successfully saved anything, refresh the profile
+      if (saveSuccess) {
+        console.log("Profile saved successfully, refreshing data...");
+        // Refresh auth context profile data
+        await refreshProfile();
+        // Refresh local teacher profile data
+        await fetchTeacherProfile();
+      }
     } catch (error) {
       console.error("Error saving teacher profile:", error);
-      return { error: error instanceof Error ? error : new Error("Failed to save profile") };
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      clearTimeout(saveTimeout);
+      setIsLoading(false);
     }
   };
 
@@ -394,6 +542,33 @@ export default function TeacherProfilePage() {
             </div>
 
             <div className="border-t pt-4"></div>
+
+            {/* Gender */}
+            <div>
+              <Label
+                htmlFor="gender"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Gender
+              </Label>
+              <Select
+                value={teacherFormData.gender}
+                onValueChange={(value: "male" | "female") =>
+                  setTeacherFormData({ ...teacherFormData, gender: value })
+                }
+              >
+                <SelectTrigger id="gender" className="mt-1">
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500 mt-1">
+                This determines the appearance of your profile card
+              </p>
+            </div>
 
             {/* Education */}
             <div>
@@ -715,58 +890,13 @@ export default function TeacherProfilePage() {
             </div>
 
             <div>
-              <Button 
-                type="button" 
-                className="w-full"
+              <Button
+                type="button"
+                onClick={handleSaveProfile}
                 disabled={isLoading}
-                onClick={async () => {
-                  if (!user) {
-                    toast({
-                      title: "Error",
-                      description: "You must be logged in to save your profile.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-
-                  setIsLoading(true);
-                  let saveError = null;
-                  
-                  try {
-                    const result = await handleSaveProfile();
-                    saveError = result.error;
-                    
-                    if (!saveError) {
-                      toast({
-                        title: "Success",
-                        description: "Teacher profile saved successfully!",
-                        variant: "default",
-                      });
-                      await fetchTeacherProfile(); // Refresh data
-                    } else {
-                      throw saveError; // This will be caught by the catch block below
-                    }
-                  } catch (err) {
-                    console.error("Error saving profile:", err);
-                    const errorMessage = err instanceof Error ? err.message : "Failed to save profile. Please try again.";
-                    toast({
-                      title: "Error",
-                      description: errorMessage,
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
+                className="w-full"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Profile"
-                )}
+                {isLoading ? "Saving..." : "Save Teacher Profile"}
               </Button>
             </div>
           </div>

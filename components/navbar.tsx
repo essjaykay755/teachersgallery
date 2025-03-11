@@ -129,6 +129,10 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Add state to track if avatar is loading
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+
   // Create refs for dropdown containers
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -137,6 +141,20 @@ export default function Navbar() {
 
   // Check if the current profile is temporary
   const profileIsTemporary = isTemporaryProfile(user, profile);
+
+  // Log profile data when it changes for debugging
+  useEffect(() => {
+    console.log("Navbar: Profile data:", {
+      hasProfile: !!profile,
+      userType: profile?.user_type,
+      avatarUrl: profile?.avatar_url,
+      gender: profile?.gender
+    });
+    
+    // Force avatar re-render when profile changes
+    setAvatarTimestamp(Date.now());
+    setAvatarLoaded(false);
+  }, [profile]);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -225,7 +243,13 @@ export default function Navbar() {
   // Add a function to handle profile refresh
   const handleRefreshProfile = async () => {
     try {
+      console.log("Navbar: Refreshing profile...");
+      setAvatarLoaded(false);
       await refreshProfile();
+      // Force avatar to reload by changing its timestamp
+      setAvatarTimestamp(Date.now());
+      console.log("Navbar: Profile refreshed successfully");
+      
       // If we're on the dashboard, refresh the page to show updated data
       if (pathname === "/dashboard") {
         router.refresh();
@@ -432,13 +456,15 @@ export default function Navbar() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
                   {user ? (
-                    <AvatarWithTypeIndicator
-                      size="sm"
-                      src={profile?.avatar_url}
-                      alt={profile?.full_name || "User avatar"}
-                      userType={profile?.user_type || "unknown"}
-                      fallback={<User className="h-4 w-4" />}
-                    />
+                    <div key={`avatar-${avatarTimestamp}`}>
+                      <AvatarWithTypeIndicator
+                        size="sm"
+                        src={profile?.avatar_url}
+                        alt={profile?.full_name || "User avatar"}
+                        userType={profile?.user_type || "unknown"}
+                        fallback={<User className="h-4 w-4" />}
+                      />
+                    </div>
                   ) : (
                     <Avatar size="sm">
                       <AvatarImage

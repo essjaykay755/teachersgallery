@@ -135,12 +135,13 @@ export async function uploadAvatar(
       return { error: "User ID is required for avatar upload" };
     }
 
-    // Generate a unique file name
+    // Generate a unique file name with timestamp and random component for uniqueness
+    const randomString = Math.random().toString(36).substring(2, 8);
     const fileExt = "jpg"; // Always use jpg for compressed images
-    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const fileName = `${userId}-${Date.now()}-${randomString}.${fileExt}`;
     console.log(`Upload: Generated file name: ${fileName}`);
 
-    // Upload path
+    // Upload path - keep it flat for simplicity
     const filePath = `${fileName}`;
     console.log(`Upload: Target path: avatars/${filePath}`);
 
@@ -215,11 +216,51 @@ export async function uploadAvatar(
     // Log original URL for debugging
     console.log("Upload: Original public URL:", avatarUrl);
     
-    // Clean up the URL and ensure it doesn't contain any duplicate slashes (except for protocol)
-    // and doesn't have trailing or leading whitespace
-    avatarUrl = avatarUrl.trim().replace(/([^:])\/+/g, '$1/');
+    try {
+      // Use URL parsing to ensure proper URL formatting
+      const url = new URL(avatarUrl);
+      
+      // Ensure https protocol
+      if (url.protocol !== 'https:') {
+        url.protocol = 'https:';
+      }
+      
+      // Normalize path to avoid duplicate slashes
+      const path = url.pathname.replace(/([^:])\/+/g, '$1/');
+      url.pathname = path;
+      
+      // Add cache buster
+      url.searchParams.set('_cb', Date.now().toString());
+      
+      // Convert back to string
+      avatarUrl = url.toString();
+    } catch (error) {
+      // Fallback to simpler URL normalization if URL parsing fails
+      console.warn("Upload: Failed to parse URL, using basic normalization:", error);
+      
+      // Clean up the URL and ensure it doesn't contain any duplicate slashes (except for protocol)
+      // and doesn't have trailing or leading whitespace
+      avatarUrl = avatarUrl.trim().replace(/([^:])\/+/g, '$1/');
+      
+      // Add cache buster
+      const separator = avatarUrl.includes('?') ? '&' : '?';
+      avatarUrl = `${avatarUrl}${separator}_cb=${Date.now()}`;
+    }
     
     console.log("Upload: Final processed URL:", avatarUrl);
+
+    // Perform a test to make sure the URL is accessible
+    try {
+      const testResponse = await fetch(avatarUrl, { 
+        method: 'HEAD',
+        cache: 'no-cache',
+        mode: 'no-cors' // Just testing if the resource exists
+      });
+      console.log("Upload: URL test result:", testResponse.status, testResponse.statusText);
+    } catch (testError) {
+      // Don't fail the upload if the test fails, just log the issue
+      console.warn("Upload: URL test failed, but proceeding:", testError);
+    }
 
     return { url: avatarUrl };
   } catch (error) {

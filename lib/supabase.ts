@@ -34,6 +34,7 @@ export type Profile = {
   email: string;
   phone?: string;
   user_type: "teacher" | "student" | "parent" | "admin";
+  gender: "male" | "female";
   avatar_url?: string;
   created_at: string;
 };

@@ -5,6 +5,7 @@ create table public.profiles (
   email text not null,
   phone text,
   user_type text not null check (user_type in ('teacher', 'student', 'parent')),
+  gender text not null check (gender in ('male', 'female')),
   avatar_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

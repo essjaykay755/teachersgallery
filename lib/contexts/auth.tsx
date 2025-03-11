@@ -10,6 +10,7 @@ import {
 import { type User } from "@supabase/supabase-js";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { type Profile } from "../supabase";
+import { fixAvatarUrl, logAvatarUrl } from "@/lib/avatar-debugger";
 
 type AuthContextType = {
   user: User | null;
@@ -74,14 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("AuthProvider: User type from DB:", data.user_type);
       console.log("AuthProvider: Avatar URL from DB:", data.avatar_url);
       
-      // Clean up avatar_url - ensure it's a valid URL or default avatar
-      const avatarUrl = data.avatar_url?.trim();
-      
-      // Only use default avatar if the URL is completely missing, empty, or explicitly references the default
-      // Important: Don't override a valid URL with default avatar
-      const validAvatarUrl = (!avatarUrl || avatarUrl === "" || avatarUrl === "@default-avatar.png" || avatarUrl === "/default-avatar.png") 
-        ? "/default-avatar.png" 
-        : avatarUrl; // Keep the original URL if it exists
+      // Use our new utility to fix avatar URLs
+      const validAvatarUrl = fixAvatarUrl(data.avatar_url);
+      logAvatarUrl(data.avatar_url, "AuthProvider.fetchProfileData");
       
       console.log("AuthProvider: Processed avatar URL:", validAvatarUrl);
       
@@ -177,22 +173,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`AuthProvider: Starting profile refresh for user ${user.id}`);
       const startTime = Date.now();
       
-      const { profile: freshProfile, error: fetchError } = await fetchProfileData(user.id);
+      // Force a new Supabase client to avoid any caching issues
+      const freshSupabase = createClientComponentClient();
       
-      const endTime = Date.now();
-      console.log(`AuthProvider: Profile refresh completed in ${endTime - startTime}ms`);
-      
-      if (fetchError) {
-        console.error("Error refreshing profile:", fetchError);
-        setError(fetchError);
-      } else {
-        console.log("AuthProvider: Profile refreshed successfully:", {
-          hasProfile: !!freshProfile,
-          userType: freshProfile?.user_type,
-          refreshTime: endTime - startTime
-        });
+      try {
+        // Fetch the profile directly with a new request
+        const { data, error } = await freshSupabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error("Error refreshing profile:", error);
+          setError(error.message);
+          return;
+        }
+        
+        if (!data) {
+          console.log(`AuthProvider: No profile found for user ${user.id} during refresh`);
+          setProfile(null);
+          setError("Profile not found");
+          return;
+        }
+        
+        // Debug raw data
+        console.log("AuthProvider: Raw profile data from refresh:", JSON.stringify(data));
+        console.log("AuthProvider: User type from refresh:", data.user_type);
+        console.log("AuthProvider: Avatar URL from refresh:", data.avatar_url);
+        
+        // Use our new utility to fix avatar URLs
+        const validAvatarUrl = fixAvatarUrl(data.avatar_url);
+        logAvatarUrl(data.avatar_url, "AuthProvider.refreshProfile");
+        
+        console.log("AuthProvider: Processed avatar URL from refresh:", validAvatarUrl);
+        
+        // Create our profile object with the processed avatar URL
+        const freshProfile = {
+          ...data,
+          avatar_url: validAvatarUrl
+        };
+        
+        // Update the profile state with the fresh data
         setProfile(freshProfile);
         setError(null);
+        
+        const endTime = Date.now();
+        console.log(`AuthProvider: Profile refresh completed in ${endTime - startTime}ms`);
+        console.log("AuthProvider: Profile refreshed successfully:", {
+          hasProfile: true,
+          userType: freshProfile.user_type,
+          refreshTime: endTime - startTime
+        });
+      } catch (err) {
+        console.error("AuthProvider: Exception during profile refresh:", err);
+        setError(err instanceof Error ? err.message : "Unknown error during profile refresh");
       }
     } else {
       console.warn("AuthProvider: Cannot refresh profile - no user logged in");

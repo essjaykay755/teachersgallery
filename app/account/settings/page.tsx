@@ -23,7 +23,14 @@ interface ExtendedProfile {
   phone?: string;
   user_type: "teacher" | "student" | "parent" | "admin";
   avatar_url?: string;
-  notification_preferences?: string;
+  notification_preferences?: string | {
+    email?: boolean;
+    push?: boolean;
+    marketing?: boolean;
+    messages?: boolean;
+    reviews?: boolean;
+    bookings?: boolean;
+  };
   created_at: string;
 }
 
@@ -76,7 +83,25 @@ export default function AccountSettingsPage() {
       // Load notification preferences if available
       if (extendedProfile.notification_preferences) {
         try {
-          const preferences = JSON.parse(extendedProfile.notification_preferences);
+          // Check if notification_preferences is already an object or a string
+          let preferences;
+          if (typeof extendedProfile.notification_preferences === 'string') {
+            preferences = JSON.parse(extendedProfile.notification_preferences);
+          } else if (typeof extendedProfile.notification_preferences === 'object') {
+            // It's already an object, use it directly
+            preferences = extendedProfile.notification_preferences;
+          } else {
+            // Set default preferences
+            preferences = {
+              email: true,
+              push: true,
+              marketing: false,
+              messages: true,
+              reviews: true,
+              bookings: true
+            };
+          }
+          
           setNotificationSettings({
             emailNotifications: preferences.email ?? true,
             pushNotifications: preferences.push ?? true,
@@ -87,6 +112,15 @@ export default function AccountSettingsPage() {
           });
         } catch (error) {
           console.error("Error parsing notification preferences:", error);
+          // Use default values on error
+          setNotificationSettings({
+            emailNotifications: true,
+            pushNotifications: true,
+            marketingEmails: false,
+            messageNotifications: true,
+            reviewNotifications: true,
+            bookingNotifications: true
+          });
         }
       }
     }
@@ -373,18 +407,28 @@ export default function AccountSettingsPage() {
       try {
         console.log("Sending update request to Supabase...");
         
-        // Check if notification_preferences column exists before trying to update
-        const { data: columnsData, error: columnsError } = await supabase
+        // First, check if profile exists
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id')
-          .limit(1);
+          .select('id, notification_preferences')
+          .eq('id', userId)
+          .single();
         
-        if (columnsError) {
-          console.error("Error checking table structure:", columnsError);
-          throw new Error("Could not verify database schema");
+        if (profileError) {
+          if (profileError.code === 'PGRST116') {
+            // Profile not found
+            throw new Error("Profile not found. Please complete your profile setup first.");
+          } else if (profileError.message && 
+                    (profileError.message.includes("column") || 
+                     profileError.message.includes("notification_preferences"))) {
+            // Column doesn't exist in schema, we will try the update anyway
+            console.warn("notification_preferences column may not exist:", profileError.message);
+          } else {
+            throw new Error(`Database error: ${profileError.message}`);
+          }
         }
         
-        // If we got here, the table exists. Let's try the update
+        // Attempt to update the profile with notification preferences
         const { data, error } = await supabase
           .from('profiles')
           .update({
@@ -395,8 +439,18 @@ export default function AccountSettingsPage() {
         
         if (error) {
           console.error("Supabase update error:", error);
+          
           // Special handling for common errors
-          if (error.code === 'PGRST204') {
+          if (error.code === 'PGRST204' || 
+              (error.message && error.message.includes("column"))) {
+            
+            // The column doesn't exist - suggest running the database fix script
+            toast({
+              title: "Database Column Missing",
+              description: "The notification_preferences column is missing. Please run the database fix script provided in the COMMON_ISSUES.md file.",
+              variant: "destructive"
+            });
+            
             throw new Error(`Database schema error: ${error.message}. The notification_preferences column might not exist.`);
           } else if (error.message?.includes('violates row-level security policy')) {
             throw new Error('Permission denied: You do not have access to update notification settings');
@@ -409,6 +463,13 @@ export default function AccountSettingsPage() {
         
         // Clear the safety timeout as the operation succeeded
         clearTimeout(safetyTimeout);
+        
+        // Show success message
+        toast({
+          title: "Settings Saved",
+          description: "Your notification preferences have been updated successfully.",
+          variant: "default"
+        });
         
         try {
           console.log("Refreshing profile data...");
@@ -423,7 +484,7 @@ export default function AccountSettingsPage() {
         
         // Show success toast with immediate visibility
         toast({
-          title: "Notification settings updated",
+          title: "Settings Saved",
           description: "Your notification preferences have been updated successfully.",
           duration: 5000, // 5 seconds
         });

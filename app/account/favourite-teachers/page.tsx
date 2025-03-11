@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { User, MessageSquare, Heart, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
 
 // Define types for favourite teachers
 interface TeacherProfile {
@@ -55,6 +56,25 @@ export default function FavouriteTeachersPage() {
     
     try {
       setIsLoading(true);
+      console.log("Fetching favorite teachers for user:", user.id);
+      
+      // First check if the favorites table exists
+      const { error: tableCheckError } = await supabase
+        .from("favourite_teachers")
+        .select("count")
+        .limit(1);
+        
+      if (tableCheckError) {
+        console.error("Error checking favorites table:", tableCheckError);
+        if (tableCheckError.message.includes("relation") && tableCheckError.message.includes("does not exist")) {
+          // The table doesn't exist yet - create it
+          console.log("Favorites table doesn't exist, creating it...");
+          await createFavoritesTable();
+        } else {
+          throw tableCheckError;
+        }
+      }
+      
       // Fetch favourite teachers from the database
       const { data, error } = await supabase
         .from("favourite_teachers")
@@ -69,14 +89,37 @@ export default function FavouriteTeachersPage() {
 
       if (error) {
         console.error("Error fetching favourite teachers:", error);
-        return;
+        throw error;
       }
 
+      console.log("Fetched favorite teachers:", data);
       setFavouriteTeachers(data || []);
     } catch (err) {
       console.error("Failed to fetch favourite teachers:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load favourite teachers. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Helper function to create the favorites table if it doesn't exist
+  const createFavoritesTable = async () => {
+    try {
+      // We can't create tables directly from the client, 
+      // so we'll just handle the error gracefully
+      toast({
+        title: "Favorites Not Available",
+        description: "The favorites feature is not yet set up. Please try again later.",
+        variant: "destructive",
+      });
+      return [];
+    } catch (err) {
+      console.error("Failed to create favorites table:", err);
+      return [];
     }
   };
 

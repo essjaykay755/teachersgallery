@@ -10,7 +10,7 @@ alwaysApply: true
 - **Styling**: CSS Modules or Tailwind CSS  
 - **Deployment**: Vercel  
 
-**Database**:  
+<!-- **Database**:  
 - `teachers`: `id` (uuid), `user_id` (uuid), `name` (text), `bio` (text), `subjects` (text), `experience` (text), `profile_picture` (text), `created_at` (timestamp), `updated_at` (timestamp)  
 - `users` (Supabase Auth): `id` (uuid), `email` (text), `password` (hashed), `role` (text in `user_metadata`)  
 
@@ -31,4 +31,4 @@ alwaysApply: true
 **Notes**:  
 - Uses Supabase Auth for login/signup.  
 - Images stored in Supabase Storage.  
-- Environment vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.  
+- Environment vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.   -->

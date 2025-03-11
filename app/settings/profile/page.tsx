@@ -32,6 +32,9 @@ const formSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address.").optional(),
   phone: z.string().optional(),
+  gender: z.enum(["male", "female"], {
+    required_error: "Please select your gender",
+  }),
   // Student fields
   grade: z.string().optional(),
   interests: z.array(z.string()).optional(),
@@ -62,6 +65,7 @@ export default function ProfileSettings() {
       lastName: "",
       email: user?.email || "",
       phone: "",
+      gender: "male",
       grade: "",
       interests: [],
       childrenCount: 1,
@@ -98,6 +102,7 @@ export default function ProfileSettings() {
         lastName,
         email: profile.email || user?.email || "",
         phone: profile.phone || "",
+        gender: profile.gender || "male",
         grade: studentProfile?.grade || "",
         interests: studentProfile?.interests || [],
         childrenCount: parentProfile?.children_count || 1,
@@ -280,6 +285,7 @@ export default function ProfileSettings() {
         full_name: fullName,
         email: data.email || user.email,
         phone: data.phone,
+        gender: data.gender,
       };
       
       // Only include avatar_url in the update if it was successfully uploaded
@@ -447,6 +453,31 @@ export default function ProfileSettings() {
                   </FormControl>
                   <FormDescription>
                     This will only be visible to approved contacts.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gender</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    This information is required and will determine profile appearance.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

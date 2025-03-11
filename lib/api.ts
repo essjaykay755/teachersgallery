@@ -216,24 +216,100 @@ export async function fetchTeachers({
 }
 
 /**
+ * Simple in-memory cache for teacher profiles
+ * This helps reduce load on the database and improve performance
+ */
+const teacherProfileCache: {
+  [id: string]: {
+    data: any;
+    timestamp: number;
+  }
+} = {};
+
+// Cache expiry time (10 minutes)
+const CACHE_TTL = 10 * 60 * 1000;
+
+/**
  * Fetches a single teacher's profile by ID
  * @param id The teacher ID to fetch
  * @returns Promise with the teacher profile data or null if not found
  */
 export async function fetchTeacherProfile(id: string) {
   try {
-    const response = await fetch(`/api/teachers/${id}`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Error fetching teacher profile:", error.error || response.statusText);
-      return null;
+    // Check cache first
+    const cached = teacherProfileCache[id];
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp < CACHE_TTL)) {
+      console.log(`Using cached profile for teacher ${id}`);
+      return cached.data;
     }
-
-    const { data } = await response.json();
-    return data;
+    
+    console.log(`Fetching teacher profile: ${id}`);
+    const fetchStart = performance.now();
+    
+    // Add timeout to fetch operation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout
+    
+    try {
+      const response = await fetch(`/api/teachers/${id}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const fetchEnd = performance.now();
+      console.log(`Teacher profile API request took ${Math.round(fetchEnd - fetchStart)}ms`);
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = null;
+        }
+        
+        const status = response.status;
+        const errorMessage = errorData?.error || response.statusText;
+        
+        if (status === 404) {
+          console.warn(`Teacher ID ${id} not found`);
+          return null;
+        }
+        
+        console.error(`Error fetching teacher profile (${status}):`, errorMessage);
+        
+        // Only throw for server errors, not for known client errors
+        if (status >= 500) {
+          throw new Error(`Server error (${status}): ${errorMessage}`);
+        }
+        
+        return null;
+      }
+      
+      const { data } = await response.json();
+      
+      // Store in cache
+      if (data) {
+        teacherProfileCache[id] = {
+          data,
+          timestamp: now
+        };
+      }
+      
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.error(`Fetch timeout for teacher profile ${id} (exceeded 40s)`);
+        throw new Error(`Request timed out after 40 seconds`);
+      }
+      
+      throw error;
+    }
   } catch (error) {
     console.error("Exception fetching teacher profile:", error);
-    return null;
+    throw error; // Rethrow to allow caller to handle the error
   }
 }

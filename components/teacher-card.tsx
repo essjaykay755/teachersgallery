@@ -37,6 +37,7 @@ type FlexibleTeacher = Partial<TeacherProfile> & {
   is_verified?: boolean;
   avatarUrl?: string;
   experience?: string | number;
+  gender?: "male" | "female";
 };
 
 interface TeacherCardProps {
@@ -136,7 +137,10 @@ const TeacherCard = React.memo(
       <div 
         className={cn(
           "rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 relative group h-auto",
-          teacher.color || "bg-gradient-to-br from-white to-blue-50",
+          // Use gender-specific gradients with proper fallback if gender field doesn't exist
+          teacher.gender === "female" ? "bg-gradient-to-br from-white to-pink-50" :
+          teacher.profiles?.gender === "female" ? "bg-gradient-to-br from-white to-pink-50" :
+          "bg-gradient-to-br from-white to-blue-50", // Default to blue (male)
           teacher.id && "cursor-pointer hover:scale-[1.01]"
         )}
         onClick={handleClick}
