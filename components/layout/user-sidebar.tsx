@@ -218,7 +218,7 @@ export default function UserSidebar() {
                 <AvatarWithTypeIndicator
                   size="md"
                   className="!h-10 !w-10 rounded-full"
-                  src={profile?.avatar_url}
+                  src={profile?.avatar_url || "/default-avatar.png"}
                   alt={profile?.full_name || "User avatar"}
                   userType={profile?.user_type || "unknown"}
                   fallback={<User className="h-5 w-5" />}

@@ -102,6 +102,11 @@ export function fixAvatarUrl(url: string | null | undefined): string {
     return '/default-avatar.png';
   }
   
+  // Handle data URLs (they are already embedded and don't need processing)
+  if (trimmedUrl.startsWith('data:image/')) {
+    return trimmedUrl;
+  }
+  
   // Fix common Supabase storage URL issues
   if (trimmedUrl.includes('supabase.co')) {
     try {
@@ -132,12 +137,6 @@ export function fixAvatarUrl(url: string | null | undefined): string {
       
       parsedUrl.pathname = path;
       
-      // Add cache-busting parameter to prevent stale browser cache
-      const hasCacheBuster = parsedUrl.searchParams.has('_cb');
-      if (!hasCacheBuster) {
-        parsedUrl.searchParams.append('_cb', Date.now().toString());
-      }
-      
       // Return the fixed URL
       return parsedUrl.toString();
     } catch (error) {
@@ -147,15 +146,13 @@ export function fixAvatarUrl(url: string | null | undefined): string {
       // Fix double slashes
       let fixedUrl = trimmedUrl.replace(/([^:])\/+/g, '$1/');
       
-      // Add cache buster
-      const hasCacheBuster = fixedUrl.includes('_cb=');
-      if (!hasCacheBuster) {
-        const separator = fixedUrl.includes('?') ? '&' : '?';
-        fixedUrl = `${fixedUrl}${separator}_cb=${Date.now()}`;
-      }
-      
       return fixedUrl;
     }
+  }
+  
+  // For public URLs, ensure they start with / if they are local paths
+  if (!trimmedUrl.startsWith('http') && !trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('data:')) {
+    return `/${trimmedUrl}`;
   }
   
   // For all other cases, return the original URL

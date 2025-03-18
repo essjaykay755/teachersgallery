@@ -135,12 +135,22 @@ export default function NavigationTabs() {
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <AvatarWithTypeIndicator
-                size="lg"
+                size="md"
                 className="!h-12 !w-12 rounded-full"
                 src={profile?.avatar_url}
                 alt={profile?.full_name || "User avatar"}
                 userType={profile?.user_type}
-                fallback={<User className="h-6 w-6" />}
+                fallback={
+                  <div className={cn(
+                    "w-full h-full flex items-center justify-center text-white text-xs font-medium",
+                    profile?.user_type === "teacher" ? "bg-blue-500" :
+                    profile?.user_type === "student" ? "bg-green-500" :
+                    profile?.user_type === "parent" ? "bg-purple-500" :
+                    profile?.user_type === "admin" ? "bg-red-500" : "bg-gray-400"
+                  )}>
+                    {profile?.user_type?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                }
               />
             </div>
             <div className="min-w-0 flex-1">

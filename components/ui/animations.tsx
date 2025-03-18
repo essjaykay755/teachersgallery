@@ -13,17 +13,24 @@ interface AnimatedContainerProps {
   animation?: string;
   className?: string;
   delay?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const AnimatedContainer = forwardRef<
   HTMLDivElement,
   AnimatedContainerProps
 >(function AnimatedContainer(
-  { children, animation = fadeIn, className, delay = "delay-0" },
+  { children, animation = fadeIn, className, delay = "delay-0", onMouseEnter, onMouseLeave },
   ref
 ) {
   return (
-    <div className={cn(animation, delay, className)} ref={ref}>
+    <div 
+      className={cn(animation, delay, className)} 
+      ref={ref}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {children}
     </div>
   );

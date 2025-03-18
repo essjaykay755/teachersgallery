@@ -125,6 +125,42 @@ export default function AccountSettingsPage() {
       }
     }
   }, [profile, user]);
+  
+  // Check for missing database columns on component mount
+  useEffect(() => {
+    if (user) {
+      // Only run once when the component mounts
+      const checkColumns = async () => {
+        try {
+          console.log("Checking for missing database columns...");
+          const response = await fetch('/api/profile/check-columns');
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Column check result:", data);
+            
+            // Show a toast if fixes were applied
+            if (data.fixes_applied && data.fixes_applied.length > 0) {
+              toast({
+                title: "Database Updated",
+                description: `Fixed missing columns: ${data.fixes_applied.join(', ')}`,
+                variant: "default"
+              });
+              
+              // Refresh profile to get updated structure
+              refreshProfile();
+            }
+          } else {
+            console.warn("Failed to check columns:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error checking for missing columns:", error);
+        }
+      };
+      
+      checkColumns();
+    }
+  }, [user, toast, refreshProfile]);
 
   if (!isClient) {
     return null;
@@ -211,7 +247,7 @@ export default function AccountSettingsPage() {
     // Set loading state
     setIsSaving(true);
     
-    // Set a safety timeout to reset the loading state after 60 seconds (increased from 30)
+    // Set a safety timeout to reset the loading state after 60 seconds
     const safetyTimeout = setTimeout(() => {
       console.log("Safety timeout triggered, resetting isSaving state");
       setIsSaving(false);
@@ -220,7 +256,7 @@ export default function AccountSettingsPage() {
         description: "The request took too long. Please try again.",
         variant: "destructive"
       });
-    }, 60000); // Increased to 60 seconds to match Supabase client timeout
+    }, 60000);
     
     console.log("Starting profile save process...");
     
@@ -247,7 +283,7 @@ export default function AccountSettingsPage() {
         }
       }
       
-      // Prepare data for Supabase update - ONLY include fields that exist in database
+      // Prepare data for update
       const updateData = {
         full_name: formData.fullName,
         phone: formData.phone,
@@ -256,18 +292,33 @@ export default function AccountSettingsPage() {
       
       console.log("Updating profile with data:", updateData);
       
-      // Getting the exact user ID and clean it
-      const userId = user.id.trim();
-      console.log("User ID for update (cleaned):", userId);
+      // Try using the API endpoint instead of direct Supabase client call
+      console.log("Sending update request to API endpoint...");
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      });
       
-      if (!userId) {
-        throw new Error("Invalid user ID: empty after trimming");
-      }
-      
-      try {
-        console.log("Sending update request to Supabase...");
-        // Update profile with more explicit error handling
-        console.log("Supabase request URL:", `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`);
+      // If the API call fails, fall back to direct Supabase client
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn("API update failed, error:", errorData);
+        console.log("Falling back to direct Supabase client...");
+        
+        // Getting the exact user ID and clean it
+        const userId = user.id.trim();
+        console.log("User ID for update (cleaned):", userId);
+        
+        if (!userId) {
+          throw new Error("Invalid user ID: empty after trimming");
+        }
+        
+        // Try the direct update with more explicit error handling
+        console.log("Sending direct update request to Supabase...");
+        console.log("API URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
         
         const startTime = Date.now();
         const { data, error } = await supabase
@@ -280,74 +331,61 @@ export default function AccountSettingsPage() {
         
         if (error) {
           console.error("Supabase update error:", error);
-          // Special handling for common errors
-          if (error.code === 'PGRST204') {
-            throw new Error(`Database schema error: ${error.message}`);
-          } else if (error.message?.includes('violates row-level security policy')) {
-            throw new Error('Permission denied: You do not have access to update this profile');
-          } else {
-            throw error;
-          }
+          throw error;
         }
         
-        console.log("Profile updated successfully:", data);
-        
-        // Clear the safety timeout as the operation succeeded
-        clearTimeout(safetyTimeout);
-        
-        try {
-          console.log("Refreshing profile data...");
-          const refreshStartTime = Date.now(); 
-          await refreshProfile();
-          const refreshEndTime = Date.now();
-          console.log(`Profile refreshed successfully in ${refreshEndTime - refreshStartTime}ms`);
-        } catch (refreshError) {
-          console.error("Error refreshing profile:", refreshError);
-          // Continue with success message even if refresh fails
-        }
-        
-        console.log("Showing success toast");
-        
-        // Show success toast with immediate visibility
-        toast({
-          title: "Profile updated",
-          description: "Your profile information has been updated successfully.",
-          duration: 5000, // 5 seconds
-        });
-        
-        console.log("Success toast should now be visible");
-      } catch (dbError) {
-        console.error("Database operation error:", dbError);
-        throw dbError;
+        console.log("Profile updated successfully via direct method:", data);
+      } else {
+        const data = await response.json();
+        console.log("Profile updated successfully via API:", data);
       }
       
-      // Reset the loading state immediately after successful save
-      setIsSaving(false);
+      // Clear the safety timeout as the operation succeeded
+      clearTimeout(safetyTimeout);
       
+      try {
+        console.log("Refreshing profile data...");
+        await refreshProfile();
+        console.log("Profile refreshed successfully");
+      } catch (refreshError) {
+        console.error("Failed to refresh profile:", refreshError);
+        // Don't throw here, as the update succeeded
+      }
+      
+      setIsSaving(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+        variant: "default"
+      });
     } catch (error) {
       console.error("Error updating profile:", error);
       
-      // Clear the safety timeout as we're handling the error
+      // More detailed error handling
+      let errorMessage = "An unknown error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check for specific error types
+        if (errorMessage.includes("violates row-level security policy")) {
+          errorMessage = "Permission denied: You don't have access to update this profile.";
+        } else if (errorMessage.includes("column") || errorMessage.includes("does not exist")) {
+          errorMessage = "Database schema issue: Missing column. Please run the database fix script.";
+        } else if (errorMessage.includes("network") || errorMessage.includes("timeout")) {
+          errorMessage = "Network error: Please check your connection and try again.";
+        }
+      }
+      
+      // Clear the safety timeout
       clearTimeout(safetyTimeout);
       
-      // Show error toast
-      toast({
-        title: "Error",
-        description: error instanceof Error 
-          ? error.message
-          : "There was an error updating your profile. Please try again.",
-        variant: "destructive",
-        duration: 7000, // 7 seconds
-      });
-      
-      // Reset loading state
       setIsSaving(false);
-    } finally {
-      // In case none of the previous resets worked, ensure loading state is reset
-      setTimeout(() => {
-        console.log("Final isSaving state reset in finally block");
-        setIsSaving(false);
-      }, 100);
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     }
   };
 
@@ -374,7 +412,7 @@ export default function AccountSettingsPage() {
         description: "The request took too long. Please try again.",
         variant: "destructive"
       });
-    }, 60000); // 60 seconds to match the Supabase client timeout
+    }, 60000);
     
     console.log("Starting notification settings save process...");
     
@@ -385,6 +423,7 @@ export default function AccountSettingsPage() {
         email: user.email
       }));
       
+      // Prepare notification preferences in JSON format
       const notificationPreferences = JSON.stringify({
         email: notificationSettings.emailNotifications,
         push: notificationSettings.pushNotifications,
@@ -394,9 +433,44 @@ export default function AccountSettingsPage() {
         bookings: notificationSettings.bookingNotifications
       });
       
-      console.log("Updating notification settings:", notificationPreferences);
+      console.log("Notification preferences to save:", notificationPreferences);
       
-      // Getting the exact user ID and clean it
+      // Try using API endpoint first (create if it doesn't exist)
+      try {
+        console.log("Attempting to save via API endpoint...");
+        const response = await fetch('/api/profile/notifications', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ notification_preferences: notificationPreferences })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Notification settings saved via API:", data);
+          
+          // Success path
+          clearTimeout(safetyTimeout);
+          setIsSaving(false);
+          
+          await refreshProfile();
+          
+          toast({
+            title: "Settings Saved",
+            description: "Your notification preferences have been updated.",
+            variant: "default"
+          });
+          
+          return;
+        } else {
+          console.warn("API endpoint not available or returned error, falling back to direct update");
+        }
+      } catch (apiError) {
+        console.warn("Error using API endpoint, falling back to direct update:", apiError);
+      }
+      
+      // Fall back to direct Supabase update if API fails
       const userId = user.id.trim();
       console.log("User ID for update (cleaned):", userId);
       
@@ -404,124 +478,87 @@ export default function AccountSettingsPage() {
         throw new Error("Invalid user ID: empty after trimming");
       }
       
+      console.log("Trying alternative approach...");
+      
+      // First check if the notification_preferences column exists
       try {
-        console.log("Sending update request to Supabase...");
-        
-        // First, check if profile exists
-        const { data: profileData, error: profileError } = await supabase
+        console.log("Checking if profile exists and has notification_preferences column...");
+        const { data, error } = await supabase
           .from('profiles')
           .select('id, notification_preferences')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
         
-        if (profileError) {
-          if (profileError.code === 'PGRST116') {
-            // Profile not found
-            throw new Error("Profile not found. Please complete your profile setup first.");
-          } else if (profileError.message && 
-                    (profileError.message.includes("column") || 
-                     profileError.message.includes("notification_preferences"))) {
-            // Column doesn't exist in schema, we will try the update anyway
-            console.warn("notification_preferences column may not exist:", profileError.message);
-          } else {
-            throw new Error(`Database error: ${profileError.message}`);
+        // If the query succeeds (even with no data), the column exists
+        console.log("Column check result:", { data, error });
+        
+        if (error) {
+          // If the error is about the column, we need to add it
+          if (error.message?.includes("column") && error.message?.includes("notification_preferences")) {
+            console.warn("notification_preferences column doesn't exist.");
+            throw new Error("Database schema issue: The notification_preferences column is missing.");
           }
         }
         
-        // Attempt to update the profile with notification preferences
-        const { data, error } = await supabase
+        // If we got this far, attempt the update
+        console.log("Attempting direct update of notification preferences...");
+        const updateResult = await supabase
           .from('profiles')
           .update({
             notification_preferences: notificationPreferences
           })
-          .eq('id', userId)
-          .select();
+          .eq('id', userId);
         
-        if (error) {
-          console.error("Supabase update error:", error);
+        if (updateResult.error) {
+          console.error("Update error:", updateResult.error);
+          throw new Error(updateResult.error.message);
+        }
+        
+        console.log("Notification settings updated successfully");
+        
+        clearTimeout(safetyTimeout);
+        setIsSaving(false);
+        
+        await refreshProfile();
+        
+        toast({
+          title: "Settings Saved",
+          description: "Your notification preferences have been updated.",
+          variant: "default"
+        });
+      } catch (error) {
+        console.error("Error saving notification settings:", error);
+        
+        let errorMessage = "Failed to save notification settings";
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
           
-          // Special handling for common errors
-          if (error.code === 'PGRST204' || 
-              (error.message && error.message.includes("column"))) {
-            
-            // The column doesn't exist - suggest running the database fix script
-            toast({
-              title: "Database Column Missing",
-              description: "The notification_preferences column is missing. Please run the database fix script provided in the COMMON_ISSUES.md file.",
-              variant: "destructive"
-            });
-            
-            throw new Error(`Database schema error: ${error.message}. The notification_preferences column might not exist.`);
-          } else if (error.message?.includes('violates row-level security policy')) {
-            throw new Error('Permission denied: You do not have access to update notification settings');
-          } else {
-            throw error;
+          if (errorMessage.includes("column") || errorMessage.includes("notification_preferences")) {
+            errorMessage = "The database is missing required columns. Please run the database fix script from HOW_TO_FIX_PROFILE_TIMEOUT.md.";
           }
         }
         
-        console.log("Notification settings updated successfully:", data);
-        
-        // Clear the safety timeout as the operation succeeded
         clearTimeout(safetyTimeout);
+        setIsSaving(false);
         
-        // Show success message
         toast({
-          title: "Settings Saved",
-          description: "Your notification preferences have been updated successfully.",
-          variant: "default"
+          title: "Failed to Save Settings",
+          description: errorMessage,
+          variant: "destructive"
         });
-        
-        try {
-          console.log("Refreshing profile data...");
-          await refreshProfile();
-          console.log("Profile refreshed successfully");
-        } catch (refreshError) {
-          console.error("Error refreshing profile:", refreshError);
-          // Continue with success message even if refresh fails
-        }
-        
-        console.log("Showing success toast");
-        
-        // Show success toast with immediate visibility
-        toast({
-          title: "Settings Saved",
-          description: "Your notification preferences have been updated successfully.",
-          duration: 5000, // 5 seconds
-        });
-        
-        console.log("Success toast should now be visible");
-      } catch (dbError) {
-        console.error("Database operation error:", dbError);
-        throw dbError;
       }
+    } catch (error) {
+      console.error("Top-level error in saveNotificationSettings:", error);
       
-      // Reset the loading state immediately after successful save
+      clearTimeout(safetyTimeout);
       setIsSaving(false);
       
-    } catch (error) {
-      console.error("Error updating notification settings:", error);
-      
-      // Clear the safety timeout as we're handling the error
-      clearTimeout(safetyTimeout);
-      
-      // Show error toast
       toast({
         title: "Error",
-        description: error instanceof Error 
-          ? error.message
-          : "There was an error updating your notification settings. Please try again.",
-        variant: "destructive",
-        duration: 7000, // 7 seconds
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
       });
-      
-      // Reset loading state
-      setIsSaving(false);
-    } finally {
-      // In case none of the previous resets worked, ensure loading state is reset
-      setTimeout(() => {
-        console.log("Final isSaving state reset in finally block");
-        setIsSaving(false);
-      }, 100);
     }
   };
 

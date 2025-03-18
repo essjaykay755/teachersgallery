@@ -91,77 +91,59 @@ export default function TeacherProfile() {
   useEffect(() => {
     if (!teacherId) return;
     
+    let isMounted = true; // Local mounting flag
+    
     async function fetchTeacherData() {
-      if (!isMountedRef.current) return;
+      console.log("Fetching teacher data for ID:", teacherId);
       
       setIsLoading(true);
       setError(null);
       setTimeoutWarning(false);
       
       try {
-        console.log("Fetching teacher data for ID:", teacherId);
-        
-        // Use the API utility instead of direct Supabase call for better error handling
+        // Simple fetch with direct call
         const teacherData = await fetchTeacherProfile(teacherId);
         
+        if (!isMounted) return; // Check if still mounted
+        
         if (!teacherData) {
-          console.error("No teacher data found for ID:", teacherId);
-          throw new Error("Teacher not found. Please check the URL and try again.");
+          console.error("Teacher profile not found");
+          setError("Teacher profile not found. It may have been deleted or is no longer available.");
+          setIsLoading(false);
+          return;
         }
         
-        console.log("Teacher data received:", teacherData);
+        console.log("Teacher data loaded successfully");
+        setTeacher(teacherData);
         
-        // Update state as soon as we have the primary data
-        if (isMountedRef.current) {
-          setTeacher(teacherData);
-        }
-        
-        // Now fetch the additional data (experiences, education, reviews)
+        // Now load secondary data
         const supabase = createClientComponentClient();
         
-        // Create retry function for better reliability
-        const fetchWithRetry = async (fetchFn: () => Promise<any>, retries = 2, label: string) => {
-          let lastError;
-          for (let i = 0; i <= retries; i++) {
-            try {
-              if (i > 0) console.log(`Retry attempt ${i} for ${label}`);
-              return await fetchFn();
-            } catch (err) {
-              console.warn(`Attempt ${i+1} failed for ${label}:`, err);
-              lastError = err;
-              // Small delay before retry
-              if (i < retries) await new Promise(r => setTimeout(r, 1000));
-            }
-          }
-          console.error(`All ${retries + 1} attempts failed for ${label}`);
-          throw lastError;
-        };
-        
-        // Fetch experiences, education, and reviews in parallel with retry logic
-        const fetchExperiences = () => fetchWithRetry(async () => {
-          const { data, error } = await supabase
+        try {
+          // Fetch experiences
+          const { data: experiences } = await supabase
             .from("teacher_experience")
             .select("*")
             .eq("teacher_id", teacherId)
             .order("created_at", { ascending: false });
-            
-          if (error) throw error;
-          return data || [];
-        }, 1, "experiences");
-        
-        const fetchEducations = () => fetchWithRetry(async () => {
-          const { data, error } = await supabase
+          
+          if (isMounted && experiences) {
+            setExperiences(experiences);
+          }
+          
+          // Fetch educations
+          const { data: educations } = await supabase
             .from("teacher_education")
             .select("*")
             .eq("teacher_id", teacherId)
             .order("created_at", { ascending: false });
-            
-          if (error) throw error;
-          return data || [];
-        }, 1, "educations");
-        
-        const fetchReviews = () => fetchWithRetry(async () => {
-          const { data, error } = await supabase
+          
+          if (isMounted && educations) {
+            setEducations(educations);
+          }
+          
+          // Fetch reviews
+          const { data: reviews } = await supabase
             .from("reviews")
             .select(`
               *,
@@ -172,61 +154,44 @@ export default function TeacherProfile() {
             `)
             .eq("teacher_id", teacherId)
             .order("created_at", { ascending: false });
-            
-          if (error) throw error;
-          return data || [];
-        }, 1, "reviews");
-        
-        // Fetch all secondary data in parallel 
-        if (isMountedRef.current) {
-          try {
-            const results = await Promise.allSettled([
-              fetchExperiences(),
-              fetchEducations(),
-              fetchReviews()
-            ]);
-            
-            // Process results even if some promises were rejected
-            if (isMountedRef.current) {
-              const [experiencesResult, educationsResult, reviewsResult] = results;
-              
-              if (experiencesResult.status === 'fulfilled') {
-                setExperiences(experiencesResult.value);
-              }
-              
-              if (educationsResult.status === 'fulfilled') {
-                setEducations(educationsResult.value);
-              }
-              
-              if (reviewsResult.status === 'fulfilled') {
-                setReviews(reviewsResult.value);
-              }
-            }
-          } catch (err) {
-            console.warn("Error fetching secondary data:", err);
-            // We don't fail the whole page load for secondary data errors
-          } finally {
-            if (isMountedRef.current) {
-              setIsLoading(false);
-            }
+          
+          if (isMounted && reviews) {
+            setReviews(reviews);
           }
+        } catch (secondaryError) {
+          console.warn("Error fetching secondary data:", secondaryError);
+          // We don't fail the whole page for secondary data errors
         }
-      } catch (err) {
-        console.error("Error fetching teacher profile:", err);
         
-        // Only update state if still mounted
-        if (isMountedRef.current) {
-          const errorMessage = err instanceof Error 
-            ? err.message 
-            : "Failed to load teacher profile. Please try again.";
-            
-          setError(errorMessage);
+        // Set loading to false only if still mounted
+        if (isMounted) {
           setIsLoading(false);
         }
+      } catch (err) {
+        if (!isMounted) return;
+        
+        console.error("Error loading teacher profile:", err);
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        setError(`Failed to load teacher profile: ${errorMessage}`);
+        setIsLoading(false);
       }
     }
     
     fetchTeacherData();
+    
+    // Add a safety timeout to ensure loading state is never stuck
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.warn("Safety timeout triggered - forcing loading state to end");
+        setIsLoading(false);
+        setError("Loading timed out. Please try refreshing the page.");
+      }
+    }, 15000); // 15 second maximum loading time
+    
+    return () => {
+      isMounted = false; // Mark as unmounted
+      clearTimeout(safetyTimeout);
+    };
   }, [teacherId]);
   
   // Handle page navigation

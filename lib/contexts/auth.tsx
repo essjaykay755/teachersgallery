@@ -75,10 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("AuthProvider: User type from DB:", data.user_type);
       console.log("AuthProvider: Avatar URL from DB:", data.avatar_url);
       
-      // Use our new utility to fix avatar URLs
-      const validAvatarUrl = fixAvatarUrl(data.avatar_url);
-      logAvatarUrl(data.avatar_url, "AuthProvider.fetchProfileData");
+      // Ensure avatar URL is valid
+      let validAvatarUrl = fixAvatarUrl(data.avatar_url);
       
+      // Add cache busting parameter if not already present
+      if (validAvatarUrl && !validAvatarUrl.includes('_cb=') && !validAvatarUrl.includes('default-avatar')) {
+        const separator = validAvatarUrl.includes('?') ? '&' : '?';
+        validAvatarUrl = `${validAvatarUrl}${separator}_cb=${Date.now()}`;
+      }
+      
+      logAvatarUrl(data.avatar_url, "AuthProvider.fetchProfileData");
       console.log("AuthProvider: Processed avatar URL:", validAvatarUrl);
       
       // Create our profile object with the processed avatar URL
